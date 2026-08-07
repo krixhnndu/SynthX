@@ -1,18 +1,49 @@
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { SeverityTag } from "../ui/Tags";
+import { Eyebrow, NotYet, SectionHeading } from "../ui/Primitives";
 import {
-  Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from "recharts";
+  SEVERITY_BAR,
+  SEVERITY_HEX,
+  SEVERITY_ORDER,
+  SEVERITY_TEXT,
+  SEVERITY_WEIGHT,
+  riskBand,
+  titleCase,
+} from "../../lib/format";
 
-const SEVERITY_COLOR = {
-  low: "#5b8c5a", medium: "#c8922a", high: "#c25a2b", critical: "#a12b2b",
-};
-const SEVERITY_WEIGHT = { low: 1, medium: 2, high: 3, critical: 4 };
+const cx = (...parts) => parts.filter(Boolean).join(" ");
+
+function ChartTip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="border border-ruleHi bg-surface px-3 py-2">
+      <div className="font-mono text-2xs uppercase tracking-label text-ink">
+        {titleCase(d.riskType)}
+      </div>
+      <div className="mt-1 text-xs text-muted">
+        {d.count} finding{d.count === 1 ? "" : "s"} · peak {d.severity}
+      </div>
+    </div>
+  );
+}
 
 export default function RiskHeatmap({ contractCase }) {
   const findings = contractCase?.risk?.findings ?? [];
   const score = contractCase?.risk?.riskScore;
 
   if (findings.length === 0)
-    return <p className="text-sm text-ink/60">Risk assessment runs at Stage 3.</p>;
+    return (
+      <div>
+        <SectionHeading title="Risk" />
+        <NotYet stage={3}>
+          Risk assessment scores each clause and records the financial and business
+          exposure behind every finding.
+        </NotYet>
+      </div>
+    );
+
+  const band = riskBand(score);
 
   const byType = Object.values(
     findings.reduce((acc, f) => {
@@ -24,49 +55,98 @@ export default function RiskHeatmap({ contractCase }) {
         acc[key].severity = f.severity;
       return acc;
     }, {})
+  ).sort((a, b) => b.weight - a.weight);
+
+  const counts = SEVERITY_ORDER.map((s) => ({
+    severity: s,
+    count: findings.filter((f) => f.severity === s).length,
+  }));
+
+  const ordered = [...findings].sort(
+    (a, b) => (SEVERITY_WEIGHT[b.severity] ?? 0) - (SEVERITY_WEIGHT[a.severity] ?? 0)
   );
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="text-4xl font-display">{score?.toFixed(2) ?? "—"}</div>
-        <div className="text-xs uppercase tracking-wide text-ink/50">Aggregate risk score</div>
-      </div>
+      <SectionHeading title="Risk" meta={`${findings.length} findings`} />
 
-      <div className="bg-white border border-rule rounded p-4 mb-8" style={{ height: 320 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={byType} layout="vertical" margin={{ left: 40 }}>
-            <XAxis type="number" hide />
-            <YAxis dataKey="riskType" type="category" width={160} tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Bar dataKey="weight" radius={[0, 3, 3, 0]}>
-              {byType.map((entry, i) => (
-                <Cell key={i} fill={SEVERITY_COLOR[entry.severity]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {findings.map((f, i) => (
-        <div key={i} className="bg-white border border-rule rounded p-4 mb-3">
-          <div className="flex justify-between items-baseline mb-2">
-            <span
-              className="text-xs uppercase tracking-wide px-2 py-0.5 rounded text-white"
-              style={{ backgroundColor: SEVERITY_COLOR[f.severity] }}
-            >
-              {f.severity}
-            </span>
-            <span className="text-xs text-ink/50 font-mono">{f.clause_ref}</span>
+      {/* Score and distribution, no boxes. */}
+      <div className="mt-6 grid gap-px border-y border-rule bg-rule sm:grid-cols-[200px_1fr]">
+        <div className="bg-paper px-5 py-5">
+          <div className={cx("font-display text-5xl leading-none", band ? SEVERITY_TEXT[band] : "text-ink")}>
+            {score?.toFixed(2) ?? "—"}
           </div>
-          <h4 className="font-medium mb-1">{f.riskType}</h4>
-          <p className="text-sm mb-2">{f.rationale}</p>
-          <dl className="text-xs text-ink/60 grid grid-cols-2 gap-2">
-            <div><dt className="inline font-medium">Financial: </dt><dd className="inline">{f.financialImpact}</dd></div>
-            <div><dt className="inline font-medium">Business: </dt><dd className="inline">{f.businessImpact}</dd></div>
-          </dl>
+          <Eyebrow className="mt-2">Aggregate risk score</Eyebrow>
         </div>
-      ))}
+
+        <div className="flex flex-wrap gap-x-10 gap-y-4 bg-paper px-5 py-5">
+          {counts.map((c) => (
+            <div key={c.severity}>
+              <div className={cx("font-display text-2xl leading-none", SEVERITY_TEXT[c.severity])}>
+                {c.count}
+              </div>
+              <Eyebrow className="mt-1.5">{c.severity}</Eyebrow>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* One instrument, not decoration. */}
+      <div className="mt-10">
+        <Eyebrow>Weighted exposure by risk type</Eyebrow>
+        <div className="mt-3" style={{ height: Math.max(180, byType.length * 34 + 24) }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={byType} layout="vertical" margin={{ left: 0, right: 12, top: 4, bottom: 4 }}>
+              <XAxis type="number" hide />
+              <YAxis
+                dataKey="riskType"
+                type="category"
+                width={170}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11, fill: "#8b929b", fontFamily: "IBM Plex Mono, monospace" }}
+                tickFormatter={titleCase}
+              />
+              <Tooltip cursor={{ fill: "#161b23" }} content={<ChartTip />} />
+              <Bar dataKey="weight" barSize={10}>
+                {byType.map((entry, i) => (
+                  <Cell key={i} fill={SEVERITY_HEX[entry.severity]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="mt-12">
+        <SectionHeading title="Findings" meta="Ordered by severity" />
+        <div className="mt-2 divide-y divide-rule border-b border-rule">
+          {ordered.map((f, i) => (
+            <div key={i} className="relative py-5 pl-4">
+              <span aria-hidden className={cx("absolute inset-y-0 left-0 w-0.5", SEVERITY_BAR[f.severity])} />
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <SeverityTag severity={f.severity} />
+                <span className="font-mono text-2xs text-faint">{f.clause_ref}</span>
+              </div>
+              <h4 className="mt-2 font-display text-base text-ink">{titleCase(f.riskType)}</h4>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{f.rationale}</p>
+              <dl className="mt-4 grid gap-x-10 gap-y-3 sm:grid-cols-2">
+                <div>
+                  <Eyebrow>Financial impact</Eyebrow>
+                  <dd className="mt-1 text-xs text-muted">{f.financialImpact || "—"}</dd>
+                </div>
+                <div>
+                  <Eyebrow>Business impact</Eyebrow>
+                  <dd className="mt-1 text-xs text-muted">{f.businessImpact || "—"}</dd>
+                </div>
+              </dl>
+              {f.evidenceCitation && (
+                <p className="mt-3 font-mono text-2xs text-faint">Evidence: {f.evidenceCitation}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import AppShell from "./components/shell/AppShell";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import CaseWorkspace from "./pages/CaseWorkspace";
@@ -17,12 +18,23 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-      <Route path="/contracts/:caseId" element={<Protected><CaseWorkspace /></Protected>} />
-      <Route path="/contracts/:caseId/audit" element={<Protected><AuditTrail /></Protected>} />
-      <Route path="/admin/knowledge-base" element={<Protected><KnowledgeBase /></Protected>} />
-      <Route path="/approvals" element={<Protected><Approvals /></Protected>} />
-      <Route path="/admin/users" element={<Protected><Users /></Protected>} />
+
+      {/* Every authenticated route renders inside the shell. */}
+      <Route
+        element={
+          <Protected>
+            <AppShell />
+          </Protected>
+        }
+      >
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/contracts/:caseId" element={<CaseWorkspace />} />
+        <Route path="/contracts/:caseId/audit" element={<AuditTrail />} />
+        <Route path="/admin/knowledge-base" element={<KnowledgeBase />} />
+        <Route path="/approvals" element={<Approvals />} />
+        <Route path="/admin/users" element={<Users />} />
+      </Route>
+
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

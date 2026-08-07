@@ -1,17 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useAuth } from "../api/auth";
+import Button from "../components/ui/Button";
+import { Checkbox, Label, TextInput } from "../components/ui/Inputs";
+import DataTable from "../components/ui/DataTable";
+import { EmptyState, ErrorNote, Eyebrow, Panel, SectionHeading } from "../components/ui/Primitives";
 
-const ROLE_COLORS = {
-  Admin: "bg-ink text-paper",
-  Reviewer: "bg-white border border-rule",
-  Finance: "bg-white border border-rule",
-  Procurement: "bg-white border border-rule",
-  Legal: "bg-white border border-rule",
-  Viewer: "bg-white border border-rule",
-};
+const cx = (...parts) => parts.filter(Boolean).join(" ");
 
 export default function Users() {
   const { roles } = useAuth();
@@ -33,8 +29,10 @@ export default function Users() {
     queryFn: async () => (await api.get("/users/roles")).data,
   });
 
-  const toggleRole = (name) =>
-    setRoleNames((prev) => (prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]));
+  const toggleRole = (roleName) =>
+    setRoleNames((prev) =>
+      prev.includes(roleName) ? prev.filter((x) => x !== roleName) : [...prev, roleName]
+    );
 
   const createUser = useMutation({
     mutationFn: () => api.post("/users", { name, email, password, roles: roleNames }),
@@ -60,126 +58,151 @@ export default function Users() {
 
   if (!isAdmin)
     return (
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        <p className="text-sm text-severity-critical">Admin access required to manage users.</p>
+      <div className="mx-auto max-w-6xl">
+        <Eyebrow>Administration</Eyebrow>
+        <h1 className="mt-1 font-display text-3xl leading-none text-ink">Users</h1>
+        <ErrorNote className="mt-6">Admin access is required to manage users.</ErrorNote>
       </div>
     );
 
-  return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <Link to="/dashboard" className="text-xs text-ink/50 underline">All cases</Link>
-      <h1 className="text-3xl mt-1 mb-6">Users</h1>
+  const columns = [
+    {
+      key: "name",
+      header: "Name",
+      render: (u) => (
+        <span className="block">
+          <span className="block text-sm text-ink">{u.name}</span>
+          <span className="mt-0.5 block font-mono text-2xs text-faint">{u.email}</span>
+        </span>
+      ),
+    },
+    {
+      key: "roles",
+      header: "Roles",
+      width: "50%",
+      render: (u) => (
+        <span className="flex flex-wrap gap-1.5">
+          {rolesList.map((r) => {
+            const on = u.roles.includes(r.name);
+            return (
+              <button
+                key={r.id}
+                onClick={() =>
+                  updateUser.mutate({
+                    id: u.id,
+                    body: {
+                      roles: on ? u.roles.filter((x) => x !== r.name) : [...u.roles, r.name],
+                    },
+                  })
+                }
+                aria-pressed={on}
+                className={cx(
+                  "border px-2 py-0.5 font-mono text-2xs uppercase tracking-label transition-colors",
+                  on
+                    ? "border-ink bg-ink text-paper"
+                    : "border-rule text-faint hover:border-ruleHi hover:text-muted"
+                )}
+              >
+                {r.name}
+              </button>
+            );
+          })}
+        </span>
+      ),
+    },
+    {
+      key: "isActive",
+      header: "Access",
+      align: "right",
+      render: (u) => (
+        <button
+          onClick={() => updateUser.mutate({ id: u.id, body: { isActive: !u.isActive } })}
+          className={cx(
+            "border px-2 py-0.5 font-mono text-2xs uppercase tracking-label transition-colors",
+            u.isActive
+              ? "border-severity-low/60 text-severity-low"
+              : "border-rule text-faint hover:text-muted"
+          )}
+        >
+          {u.isActive ? "Active" : "Disabled"}
+        </button>
+      ),
+    },
+  ];
 
-      <div className="grid grid-cols-[360px_1fr] gap-8">
+  return (
+    <div className="mx-auto max-w-6xl">
+      <Eyebrow>Administration</Eyebrow>
+      <h1 className="mt-1 font-display text-3xl leading-none text-ink">Users</h1>
+      <p className="mt-3 max-w-xl text-sm text-muted">
+        Roles decide what a person can read and which cases they can decide on.
+      </p>
+
+      <div className="mt-10 grid gap-10 lg:grid-cols-[340px_1fr]">
         <div>
-          <h3 className="text-lg mb-3">Invite a user</h3>
-          <div className="bg-white border border-rule rounded p-4 flex flex-col gap-3">
-            <input
+          <SectionHeading title="Add a user" />
+          <Panel className="mt-4">
+            <Label htmlFor="u-name">Full name</Label>
+            <TextInput
+              id="u-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Full name"
-              className="border border-rule rounded px-3 py-2 text-sm"
+              className="mb-4"
             />
-            <input
+
+            <Label htmlFor="u-email">Email</Label>
+            <TextInput
+              id="u-email"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className="border border-rule rounded px-3 py-2 text-sm"
+              className="mb-4"
             />
-            <input
+
+            <Label htmlFor="u-password">Temporary password</Label>
+            <TextInput
+              id="u-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="border border-rule rounded px-3 py-2 text-sm"
+              className="mb-5"
             />
-            <div className="flex flex-wrap gap-2">
+
+            <Eyebrow className="mb-2">Roles</Eyebrow>
+            <div className="mb-5 grid grid-cols-2 gap-2">
               {rolesList.map((r) => (
-                <label
+                <Checkbox
                   key={r.id}
-                  className="flex items-center gap-1.5 text-xs cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={roleNames.includes(r.name)}
-                    onChange={() => toggleRole(r.name)}
-                  />
-                  {r.name}
-                </label>
+                  label={r.name}
+                  checked={roleNames.includes(r.name)}
+                  onChange={() => toggleRole(r.name)}
+                />
               ))}
             </div>
-            {error && <p className="text-sm text-severity-critical">{error}</p>}
-            <button
+
+            {error && <ErrorNote className="mb-4">{error}</ErrorNote>}
+
+            <Button
+              variant="primary"
               onClick={() => createUser.mutate()}
               disabled={!name.trim() || !email.trim() || !password || createUser.isPending}
-              className="bg-ink text-paper px-4 py-2 rounded text-sm font-medium disabled:opacity-40"
+              className="w-full"
             >
-              Create user
-            </button>
-          </div>
+              {createUser.isPending ? "Creating" : "Create user"}
+            </Button>
+          </Panel>
         </div>
 
         <div>
-          <h3 className="text-lg mb-3">All users</h3>
-          {isLoading ? (
-            <p className="text-sm text-ink/60">Loading.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-ink/50">
-                <tr className="border-b border-rule">
-                  <th className="py-2">Name</th>
-                  <th>Email</th>
-                  <th>Roles</th>
-                  <th>Active</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b border-rule/60">
-                    <td className="py-3 font-medium">{u.name}</td>
-                    <td className="text-ink/60">{u.email}</td>
-                    <td className="flex flex-wrap gap-1 py-3">
-                      {rolesList.map((r) => {
-                        const on = u.roles.includes(r.name);
-                        return (
-                          <button
-                            key={r.id}
-                            onClick={() =>
-                              updateUser.mutate({
-                                id: u.id,
-                                body: {
-                                  roles: on
-                                    ? u.roles.filter((x) => x !== r.name)
-                                    : [...u.roles, r.name],
-                                },
-                              })
-                            }
-                            className={`px-2 py-0.5 rounded text-xs ${
-                              on
-                                ? ROLE_COLORS[r.name] ?? "bg-ink text-paper"
-                                : "border border-rule text-ink/40"
-                            }`}
-                          >
-                            {r.name}
-                          </button>
-                        );
-                      })}
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => updateUser.mutate({ id: u.id, body: { isActive: !u.isActive } })}
-                        className={`px-2 py-0.5 rounded text-xs border ${
-                          u.isActive ? "border-ink text-ink" : "border-rule text-ink/40"
-                        }`}
-                      >
-                        {u.isActive ? "Active" : "Disabled"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <SectionHeading title="All users" meta={`${users.length} accounts`} />
+          <DataTable
+            className="mt-2"
+            columns={columns}
+            rows={users}
+            rowKey={(u) => u.id}
+            loading={isLoading}
+            empty={<EmptyState title="No users">Create the first account on the left.</EmptyState>}
+          />
         </div>
       </div>
     </div>
