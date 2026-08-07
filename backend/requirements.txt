@@ -6,8 +6,7 @@ pydantic-settings==2.6.1
 sqlalchemy==2.0.36
 alembic==1.14.0
 pyjwt==2.9.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.0.1  # passlib 1.7.4 breaks with bcrypt>=4.1 (72-byte check / removed __about__)
+bcrypt>=4.0.1  # direct bcrypt for password hashing (no passlib - unmaintained, breaks with bcrypt>=4.1)
 cryptography==43.0.3
 redis==5.2.0
 arq==0.26.1
