@@ -22,7 +22,8 @@ class CurrentUser:
 def current_user(creds: HTTPAuthorizationCredentials = Depends(bearer)) -> CurrentUser:
     try:
         claims = decode_token(creds.credentials)
-    except Exception:
+    except Exception as exc:
+        print(f"JWT DECODE FAILED: {exc}")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired token")
     if claims.get("typ") != "access":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "wrong token type")

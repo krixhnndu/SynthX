@@ -22,12 +22,9 @@ def _make_node(stage_number: int):
     async def node(state: PipelineState) -> PipelineState:
         result = await run_stage(state["case_id"], stage_number)
         failed = list(state.get("failed_stages", []))
-        if result["status"] == "failed":
-            failed.append(stage_number)
-        # A failed or blocked stage must stop the pipeline: forwarding to the next
-        # stage would run its agents on partial data. finalise_pipeline lands the
-        # case in awaiting_review either way, so a blocked case is still reviewed.
         halted = result["status"] in ("failed", "blocked")
+        if halted:
+            failed.append(stage_number)
         return {**state, "stage": stage_number, "failed_stages": failed,
                 "halted": halted}
     return node
