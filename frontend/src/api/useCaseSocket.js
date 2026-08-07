@@ -13,7 +13,7 @@ export function useCaseSocket(caseId) {
     const token = sessionStorage.getItem("access_token");
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const socket = new WebSocket(
-      `${protocol}://${window.location.host}/ws/contracts/${caseId}?token=${token}`
+      `${protocol}://${window.location.host}/api/ws/contracts/${caseId}?token=${token}`
     );
 
     socket.onmessage = (event) => {
