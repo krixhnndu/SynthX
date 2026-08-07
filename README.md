@@ -9,13 +9,15 @@ questions are recorded in `docs/OPEN_DECISIONS.md`.
 
 ## Stack
 
-SQLite (JSON Contract Case payload + indexed columns), ChromaDB, Groq via LangChain,
-LangGraph, FastAPI, arq/Redis workers, React + Vite + Tailwind + MUI, React Flow,
-Recharts, Tesseract, WeasyPrint.
+SQLite by default for local development, Postgres in Docker Compose, ChromaDB, Groq via
+LangChain, LangGraph, FastAPI, arq/Redis workers, React + Vite + Tailwind + MUI,
+React Flow, Recharts, Tesseract, WeasyPrint.
 
 ## Prerequisites
 
-Installed on the machine, not in a container:
+You can run the app either directly on the host or through Docker Compose.
+
+Host install (non-container):
 
 - Python 3.12+ and Node 20+
 - Redis, running locally - the worker queue and the live-status fanout both use it
@@ -32,6 +34,8 @@ macOS:
     brew install redis tesseract poppler pango cairo gdk-pixbuf
 
 ## Running it
+
+### Option A: local host development
 
 Backend, from `backend/`:
 
@@ -61,6 +65,17 @@ Frontend, from `frontend/`:
 Frontend on http://localhost:5173, API on http://localhost:8000, docs at `/docs`.
 
 Sign in with the bootstrap admin from `.env`, then change that password.
+
+### Option B: Docker Compose
+
+From the repository root:
+
+    docker compose up --build
+
+This starts the backend, PostgreSQL, Redis and ChromaDB. The backend container runs
+migrations and seeds the bootstrap admin automatically on startup.
+
+Frontend on http://localhost:5000, API on http://localhost:8000, docs at `/docs`.
 
 ## Layout
 

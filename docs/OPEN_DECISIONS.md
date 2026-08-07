@@ -14,7 +14,7 @@ The master prompt section 3 offered alternatives. These are now fixed:
 | Vector store | ChromaDB | Persists natively and filters by metadata, which section 8.8 requires for `source_type` filtering; FAISS would need both hand-rolled |
 | Charts | Recharts | React-native, no wrapper layer beside React Flow |
 | Object storage | Adapter: local dev, S3 prod | One interface from day one, so prod is config not rewrite |
-| Deployment | Open | Render was chosen when the stack included Postgres and Docker. With a SQLite file and no containers, that reasoning no longer holds and the target needs re-picking |
+| Deployment | Open | The stack now supports Docker Compose for local development, but the production target still needs to be chosen explicitly rather than assuming a host-only setup |
 
 ## Gap 1 - background execution contradicted the NFRs
 
@@ -46,15 +46,15 @@ the parallelism in Stage 3 is concurrency in the agents and the LLM calls, not i
 database; and a single file cannot be shared by API and worker processes on separate
 machines, which caps horizontal scaling at one host.
 
-## No containers
+## Optional containerized development
 
-Docker is removed. The API, the arq worker, Redis, Tesseract, Poppler and the WeasyPrint
-system libraries are all installed on the host; the Python side runs from a virtualenv in
-`backend/.venv`. Setup steps are in the README.
+Docker Compose is now supported for local development. The API, arq worker, PostgreSQL,
+Redis, ChromaDB and the backend's runtime dependencies can be started together from the
+repository root with `docker compose up --build`.
 
-The removal does not change the architecture: the API and the worker are still separate
-processes for the reason in Gap 1, they are now just started by hand rather than by
-compose.
+The host-based workflow is still supported as well: the API and the worker remain separate
+processes for the reason in Gap 1, and they can still be started manually from a local
+virtualenv when you prefer not to use containers.
 
 ## Gap 2 - the RBAC policy table had no schema
 
