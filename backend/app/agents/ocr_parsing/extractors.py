@@ -14,6 +14,13 @@ SourceFormat = Literal["pdf", "docx", "scanned"]
 DIGITAL_TEXT_THRESHOLD = 100
 
 
+def _is_digital(text: str) -> bool:
+    """Above this ratio of extractable characters per page, the PDF is digital
+    text rather than a scanned image."""
+    pages = max(text.count("\f"), 1)
+    return len(text.strip()) / pages >= DIGITAL_TEXT_THRESHOLD
+
+
 def detect_and_extract(data: bytes, filename: str) -> tuple[SourceFormat, str, float]:
     """Returns (source_format, raw_text, confidence)."""
     lower = filename.lower()
@@ -21,13 +28,29 @@ def detect_and_extract(data: bytes, filename: str) -> tuple[SourceFormat, str, f
         return "docx", _extract_docx(data), 1.0
     if lower.endswith(".pdf"):
         text = _extract_pdf_native(data)
-        pages = max(text.count("\f"), 1)
-        if len(text.strip()) / pages >= DIGITAL_TEXT_THRESHOLD:
+        if _is_digital(text):
             return "pdf", text, 1.0
         ocr_text, confidence = _extract_scanned(data)
         return "scanned", ocr_text, confidence
     ocr_text, confidence = _extract_scanned(data)
     return "scanned", ocr_text, confidence
+
+
+def detect_format(data: bytes, filename: str) -> SourceFormat:
+    """Coarse format label computed at upload time, matching what the OCR agent
+    will later store in the payload. Runs no OCR - a PDF is classed as scanned
+    only when native text extraction is thin, which mirrors detect_and_extract."""
+    lower = filename.lower()
+    if lower.endswith(".docx"):
+        return "docx"
+    if lower.endswith(".pdf"):
+        try:
+            return "pdf" if _is_digital(_extract_pdf_native(data)) else "scanned"
+        except Exception:
+            # Unreadable PDF. Extension says pdf; the OCR agent will surface
+            # the actual parse failure rather than mislabeling it scanned.
+            return "pdf"
+    return "scanned"
 
 
 def _extract_docx(data: bytes) -> str:
