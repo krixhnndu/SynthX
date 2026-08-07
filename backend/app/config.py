@@ -2,11 +2,17 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 # Repo-root .env. Resolved from this file's path, not the CWD, so the settings load
 # the same file whether uvicorn/alembic run from backend/ or the repo root.
 REPO_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
+# Where the app's local data lives (database, Chroma, uploaded documents). Anchored
+# to backend/ so it is identical no matter which directory the process is launched
+# from - a relative "./data/..." would otherwise point at a different folder per CWD.
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 
 class Settings(BaseSettings):
@@ -53,6 +59,26 @@ class Settings(BaseSettings):
     # --- Orchestrator ---
     node_max_retries: int = 3
     node_backoff_base_seconds: float = 2.0
+
+    @field_validator("database_url")
+    @classmethod
+    def _anchor_database_url(cls, v: str) -> str:
+        # sqlite+pysqlite:///./data/cip.db resolves "./" against the CWD, so the DB
+        # file (and the login/session data in it) depends on where the process starts.
+        # Rewrite relative sqlite URLs to an absolute path under backend/.
+        prefix = "sqlite+pysqlite:///"
+        if v.startswith(prefix) and v[len(prefix):].startswith("./"):
+            rel = v[len(prefix) + 2:]
+            return prefix + (BACKEND_DIR / rel).as_posix()
+        return v
+
+    @field_validator("chroma_persist_dir", "storage_local_dir")
+    @classmethod
+    def _anchor_data_dir(cls, v: str) -> str:
+        # Same idea as above for the plain directory settings.
+        if v.startswith("./"):
+            return str(BACKEND_DIR / v[2:])
+        return v
 
     class Config:
         env_file = str(REPO_ENV_FILE)
