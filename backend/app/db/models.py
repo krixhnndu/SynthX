@@ -170,4 +170,9 @@ class LegalKnowledgeDocument(Base):
     title: Mapped[str] = mapped_column(String(512))
     content: Mapped[str] = mapped_column(Text)  # encrypt at rest - see core/crypto.py
     meta: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Embeddings are stored externally in ChromaDB, not in a pgvector column.
+    vector_store: Mapped[str | None] = mapped_column(String(64), nullable=True, default="chroma")
+    vector_collection: Mapped[str | None] = mapped_column(String(128), nullable=True, default="legal_knowledge")
+    embedding_model: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    embedding_dimensions: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

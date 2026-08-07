@@ -3,6 +3,7 @@ import re
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.core.crypto import encrypt
 from app.db.models import LegalKnowledgeDocument
 from app.knowledge.chroma_store import add_chunks
@@ -31,6 +32,9 @@ def ingest_document(db: Session, *, source_type: str, title: str, content: str,
     record = LegalKnowledgeDocument(
         source_type=source_type, title=title,
         content=encrypt(content), meta=metadata or {},
+        vector_store="chroma",
+        vector_collection=settings.chroma_collection,
+        embedding_model=settings.embedding_model,
     )
     db.add(record)
     db.commit()
