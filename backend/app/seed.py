@@ -5,8 +5,14 @@ The bootstrap admin password comes from BOOTSTRAP_ADMIN_PASSWORD and must be rot
 after first login (docs/OPEN_DECISIONS.md, gap 4).
 """
 import os
+from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import select
+
+# Bootstrap admin creds come from the repo-root .env, which os.getenv would miss
+# when this runs from backend/. Resolve it from this file's location.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 from app.core import rbac
 from app.core.security import hash_password

@@ -1,6 +1,12 @@
 """Application settings. All secrets come from environment variables (spec 12)."""
 from functools import lru_cache
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# Repo-root .env. Resolved from this file's path, not the CWD, so the settings load
+# the same file whether uvicorn/alembic run from backend/ or the repo root.
+REPO_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
@@ -16,6 +22,10 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
     jwt_expiry_minutes: int = 480
+
+    # --- Bootstrap admin (seed) ---
+    bootstrap_admin_email: str = "admin@example.com"
+    bootstrap_admin_password: str = "changeme123"
 
     # --- LLM (Groq) ---
     groq_api_key: str = ""
@@ -45,7 +55,7 @@ class Settings(BaseSettings):
     node_backoff_base_seconds: float = 2.0
 
     class Config:
-        env_file = ".env"
+        env_file = str(REPO_ENV_FILE)
         env_prefix = ""
 
 
