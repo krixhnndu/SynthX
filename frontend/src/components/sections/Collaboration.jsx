@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import Button from "../ui/Button";
+import { Checkbox, Label, TextArea } from "../ui/Inputs";
+import { EmptyState, ErrorNote, Eyebrow, SectionHeading } from "../ui/Primitives";
+import { formatDateTime } from "../../lib/format";
 
 export default function Collaboration({ caseId }) {
   const [comment, setComment] = useState("");
@@ -50,72 +54,102 @@ export default function Collaboration({ caseId }) {
   const toggle = (id) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  const dirty =
+    selected.length !== assignments.length ||
+    selected.some((id) => !assignments.some((a) => a.userId === id));
+
   return (
-    <div className="grid grid-cols-2 gap-8">
-      <div>
-        <h3 className="text-lg mb-3">Comments</h3>
-        {comments.length === 0 && <p className="text-sm text-ink/60 mb-3">No comments yet.</p>}
-        {comments.map((c) => (
-          <div key={c.id} className="bg-white border border-rule rounded p-4 mb-2">
-            <div className="flex justify-between text-xs text-ink/50 mb-1">
-              <span className="font-medium text-ink">{c.author}</span>
-              <span>{new Date(c.at).toLocaleString()}</span>
+    <div className="grid gap-12 lg:grid-cols-[1fr_320px]">
+      <div className="min-w-0">
+        <SectionHeading title="Comments" meta={`${comments.length} on this case`} />
+
+        <div className="mt-2">
+          {comments.length === 0 ? (
+            <EmptyState title="No comments">
+              Notes left here are visible to everyone assigned to the case.
+            </EmptyState>
+          ) : (
+            <div className="divide-y divide-rule border-b border-rule">
+              {comments.map((c) => (
+                <div key={c.id} className="py-4">
+                  <div className="flex flex-wrap items-baseline justify-between gap-3">
+                    <span className="text-sm text-ink">{c.author}</span>
+                    <span className="font-mono text-2xs text-faint">{formatDateTime(c.at)}</span>
+                  </div>
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-muted">
+                    {c.body}
+                  </p>
+                </div>
+              ))}
             </div>
-            <p className="text-sm whitespace-pre-wrap">{c.body}</p>
-          </div>
-        ))}
-        <textarea
-          rows={3}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Add a comment"
-          className="w-full border border-rule rounded px-3 py-2 mb-2 text-sm"
-        />
-        <button
-          onClick={() => postComment.mutate()}
-          disabled={!comment.trim() || postComment.isPending}
-          className="bg-ink text-paper px-4 py-2 rounded text-sm font-medium disabled:opacity-40"
-        >
-          Post comment
-        </button>
+          )}
+        </div>
+
+        <div className="mt-6 max-w-2xl">
+          <Label htmlFor="new-comment">Add a comment</Label>
+          <TextArea
+            id="new-comment"
+            rows={3}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            className="mb-3"
+          />
+          <Button
+            variant="primary"
+            onClick={() => postComment.mutate()}
+            disabled={!comment.trim() || postComment.isPending}
+          >
+            {postComment.isPending ? "Posting" : "Post comment"}
+          </Button>
+        </div>
       </div>
 
-      <div>
-        <h3 className="text-lg mb-3">Assignees</h3>
-        <div className="mb-4">
-          {assignments.length === 0 && <p className="text-sm text-ink/60">No one is assigned yet.</p>}
-          {assignments.map((a) => (
-            <span
-              key={a.userId}
-              className="inline-flex items-center bg-white border border-rule rounded px-2 py-1 text-xs mr-2 mb-2"
-            >
-              {a.name}
-            </span>
-          ))}
+      <div className="min-w-0">
+        <SectionHeading title="Assignees" meta={`${assignments.length} assigned`} />
+
+        <div className="mt-4">
+          <Eyebrow>Currently on this case</Eyebrow>
+          <div className="mt-2">
+            {assignments.length === 0 ? (
+              <p className="text-xs text-faint">No one is assigned yet.</p>
+            ) : (
+              <ul className="space-y-1">
+                {assignments.map((a) => (
+                  <li key={a.userId} className="border-l border-ruleHi pl-3 text-sm text-ink">
+                    {a.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
-        <div className="text-xs text-ink/50 mb-1">Assign users</div>
-        <div className="max-h-48 overflow-auto border border-rule rounded bg-white mb-3">
-          {users.map((u) => (
-            <label
-              key={u.id}
-              className="flex items-center gap-2 px-3 py-2 border-b border-rule/50 text-sm cursor-pointer"
-            >
-              <input type="checkbox" checked={selected.includes(u.id)} onChange={() => toggle(u.id)} />
-              {u.name} <span className="text-ink/50 text-xs">{u.email}</span>
-            </label>
-          ))}
+        <div className="mt-6">
+          <Eyebrow className="mb-2">Assign people</Eyebrow>
+          <div className="max-h-64 divide-y divide-rule overflow-y-auto border border-rule bg-surface">
+            {users.map((u) => (
+              <div key={u.id} className="px-3 py-2">
+                <Checkbox
+                  label={u.name}
+                  hint={u.email}
+                  checked={selected.includes(u.id)}
+                  onChange={() => toggle(u.id)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
-        {error && <p className="text-sm text-severity-critical mb-3">{error}</p>}
+        {error && <ErrorNote className="mt-4">{error}</ErrorNote>}
 
-        <button
+        <Button
+          className="mt-4 w-full"
+          variant="primary"
           onClick={() => saveAssignments.mutate()}
-          disabled={saveAssignments.isPending}
-          className="bg-ink text-paper px-4 py-2 rounded text-sm font-medium disabled:opacity-40"
+          disabled={saveAssignments.isPending || !dirty}
         >
-          Save assignments
-        </button>
+          {saveAssignments.isPending ? "Saving" : "Save assignments"}
+        </Button>
       </div>
     </div>
   );

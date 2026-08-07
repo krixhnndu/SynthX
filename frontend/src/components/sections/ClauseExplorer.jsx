@@ -1,70 +1,79 @@
 import { useState } from "react";
+import { TabRow } from "../ui/Inputs";
+import DataTable from "../ui/DataTable";
+import { Confidence } from "../ui/Tags";
+import { Eyebrow, NotYet, SectionHeading } from "../ui/Primitives";
+import { titleCase } from "../../lib/format";
 
 export default function ClauseExplorer({ contractCase }) {
   const [type, setType] = useState("all");
   const clauses = contractCase?.clauseClassification?.clauses ?? [];
   const obligations = contractCase?.clauseClassification?.obligations ?? [];
-  const types = ["all", ...new Set(clauses.map((c) => c.clauseType))];
 
   if (clauses.length === 0)
-    return <p className="text-sm text-ink/60">Clause classification runs at Stage 2.</p>;
+    return (
+      <div>
+        <SectionHeading title="Clauses" />
+        <NotYet stage={2}>
+          Clause classification labels each section and extracts the obligations each
+          party takes on.
+        </NotYet>
+      </div>
+    );
 
+  const types = ["all", ...new Set(clauses.map((c) => c.clauseType))];
   const shown = type === "all" ? clauses : clauses.filter((c) => c.clauseType === type);
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 mb-5 text-xs">
-        {types.map((t) => (
-          <button
-            key={t}
-            onClick={() => setType(t)}
-            className={`px-2.5 py-1 rounded border ${
-              type === t ? "bg-ink text-paper border-ink" : "border-rule"
-            }`}
-          >
-            {t.replace(/_/g, " ")}
-          </button>
+      <SectionHeading title="Clauses" meta={`${clauses.length} classified`} />
+
+      <TabRow
+        className="mt-5"
+        value={type}
+        onChange={setType}
+        options={types.map((t) => ({
+          value: t,
+          label: t === "all" ? "All" : titleCase(t),
+          count: t === "all" ? clauses.length : clauses.filter((c) => c.clauseType === t).length,
+        }))}
+      />
+
+      <div className="mt-6 divide-y divide-rule border-y border-rule">
+        {shown.map((clause) => (
+          <details key={clause.id} className="group py-4">
+            <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+              <span className="min-w-0">
+                <span className="label">{titleCase(clause.clauseType)}</span>
+                <span className="mt-1 block text-sm text-ink">{clause.summary}</span>
+              </span>
+              <span className="flex shrink-0 flex-col items-end gap-1">
+                <span className="font-mono text-2xs text-faint">{clause.id}</span>
+                <Confidence value={clause.confidence} />
+              </span>
+            </summary>
+            <p className="mt-3 whitespace-pre-wrap border-l border-rule pl-4 text-sm leading-relaxed text-muted">
+              {clause.text}
+            </p>
+          </details>
         ))}
       </div>
 
-      {shown.map((clause) => (
-        <div key={clause.id} className="bg-white border border-rule rounded p-4 mb-3">
-          <div className="flex justify-between text-xs text-ink/50 mb-2">
-            <span className="font-mono">{clause.id}</span>
-            <span>{Math.round((clause.confidence ?? 0) * 100)}% confidence</span>
-          </div>
-          <div className="text-xs uppercase tracking-wide mb-1">
-            {clause.clauseType?.replace(/_/g, " ")}
-          </div>
-          <p className="text-sm mb-2">{clause.summary}</p>
-          <details className="text-sm">
-            <summary className="cursor-pointer text-ink/60">Full text</summary>
-            <p className="mt-2 whitespace-pre-wrap">{clause.text}</p>
-          </details>
-        </div>
-      ))}
-
       {obligations.length > 0 && (
-        <>
-          <h3 className="text-lg mt-8 mb-3">Obligations</h3>
-          <table className="w-full text-sm bg-white border border-rule rounded">
-            <thead className="text-left text-xs uppercase text-ink/50">
-              <tr className="border-b border-rule">
-                <th className="p-2">Party</th><th>Obligation</th><th>Clause</th><th>Due</th>
-              </tr>
-            </thead>
-            <tbody>
-              {obligations.map((o, i) => (
-                <tr key={i} className="border-b border-rule/50">
-                  <td className="p-2">{o.party}</td>
-                  <td>{o.obligation}</td>
-                  <td className="font-mono text-xs">{o.clause_ref}</td>
-                  <td>{o.dueBy ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
+        <div className="mt-12">
+          <SectionHeading title="Obligations" meta={`${obligations.length} recorded`} />
+          <DataTable
+            className="mt-2"
+            rows={obligations}
+            rowKey={(_, i) => i}
+            columns={[
+              { key: "party", header: "Party", render: (o) => <span className="text-sm text-ink">{o.party}</span> },
+              { key: "obligation", header: "Obligation", width: "50%", render: (o) => <span className="text-sm text-muted">{o.obligation}</span> },
+              { key: "clause_ref", header: "Clause", render: (o) => <span className="font-mono text-2xs text-faint">{o.clause_ref}</span> },
+              { key: "dueBy", header: "Due", align: "right", render: (o) => <span className="font-mono text-2xs text-faint">{o.dueBy ?? "—"}</span> },
+            ]}
+          />
+        </div>
       )}
     </div>
   );

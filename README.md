@@ -75,7 +75,7 @@ From the repository root:
 This starts the backend, PostgreSQL, Redis and ChromaDB. The backend container runs
 migrations and seeds the bootstrap admin automatically on startup.
 
-Frontend on http://localhost:5000, API on http://localhost:8000, docs at `/docs`.
+Frontend on http://localhost:5001, API on http://localhost:8000, docs at `/docs`.
 
 ## Layout
 

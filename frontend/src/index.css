@@ -2,10 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-paper text-ink font-body antialiased;
+@layer base {
+  html { color-scheme: light; }
+
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+  }
+
+  h1, h2, h3 {
+    @apply font-display;
+  }
+
+  /* One visible focus treatment everywhere. */
+  :focus-visible {
+    @apply outline-none ring-1 ring-ink ring-offset-2 ring-offset-paper;
+  }
+
+  ::selection { background: #cbd5e1; color: #111827; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #e2e8f0; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border: 2px solid #e2e8f0; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+  input, textarea, select { color-scheme: light; }
 }
 
-h1, h2, h3 {
-  @apply font-display;
+@layer components {
+  /* Uppercase mono label used for every eyebrow, column head and metadata key. */
+  .label {
+    @apply font-mono text-2xs uppercase tracking-label text-faint;
+  }
+}
+
+@layer utilities {
+  .clause-target {
+    animation: clause-flash 1600ms ease-out 1;
+  }
+  @keyframes clause-flash {
+    0%   { background-color: rgba(74, 125, 166, 0.22); }
+    100% { background-color: transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }

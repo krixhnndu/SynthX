@@ -1,110 +1,161 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import { useAuth } from "../api/auth";
 import UploadDialog from "../components/UploadDialog";
+import DataTable from "../components/ui/DataTable";
+import Button from "../components/ui/Button";
+import { TabRow } from "../components/ui/Inputs";
+import { StatusTag } from "../components/ui/Tags";
+import { StageTicks } from "../components/StageRail";
+import { EmptyState, Eyebrow } from "../components/ui/Primitives";
+import {
+  SEVERITY_BAR,
+  SEVERITY_TEXT,
+  STATUS_BAR,
+  STATUS_LABEL,
+  formatDate,
+  riskBand,
+  shortId,
+} from "../lib/format";
 
-const STATUS_LABEL = {
-  in_progress: "In review",
-  awaiting_review: "Awaiting decision",
-  approved: "Approved",
-  changes_requested: "Changes requested",
-  rejected: "Rejected",
-};
+const FILTERS = [
+  { value: "", label: "All" },
+  { value: "in_progress", label: STATUS_LABEL.in_progress },
+  { value: "awaiting_review", label: STATUS_LABEL.awaiting_review },
+  { value: "approved", label: STATUS_LABEL.approved },
+  { value: "rejected", label: STATUS_LABEL.rejected },
+];
+
+function normalizeCases(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
 
 export default function Dashboard() {
   const [filter, setFilter] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { roles } = useAuth();
-  const isAdmin = roles.includes("Admin");
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ["cases", filter],
-    queryFn: async () =>
-      (await api.get("/contracts", { params: filter ? { status_filter: filter } : {} })).data,
+    queryFn: async () => {
+      const { data } = await api.get("/contracts", {
+        params: filter ? { status_filter: filter } : {},
+      });
+      return normalizeCases(data);
+    },
   });
 
-  const awaiting = cases.filter((c) => c.status === "awaiting_review").length;
-  const highRisk = cases.filter((c) => (c.riskScore ?? 0) >= 0.7).length;
+  // Attention counts must not move when the table is filtered.
+  // With filter "" this is the same query, so React Query serves it from cache.
+  const { data: allCases = [] } = useQuery({
+    queryKey: ["cases", ""],
+    queryFn: async () => {
+      const { data } = await api.get("/contracts");
+      return normalizeCases(data);
+    },
+  });
+
+  const awaiting = allCases.filter((c) => c.status === "awaiting_review").length;
+  const highRisk = allCases.filter((c) => (c.riskScore ?? 0) >= 0.7).length;
+  const changes = allCases.filter((c) => c.status === "changes_requested").length;
+
+  const columns = [
+    {
+      key: "caseId",
+      header: "Case",
+      width: "30%",
+      render: (c) => (
+        <span className="block min-w-0">
+          <span className="block font-mono text-xs text-ink">{shortId(c.caseId)}</span>
+          <span className="mt-0.5 block truncate text-xs text-faint">{c.filename ?? "—"}</span>
+        </span>
+      ),
+    },
+    { key: "status", header: "Status", render: (c) => <StatusTag status={c.status} /> },
+    {
+      key: "stage",
+      header: "Progress",
+      render: (c) => <StageTicks currentStage={c.currentStage} caseStatus={c.status} />,
+    },
+    {
+      key: "risk",
+      header: "Risk",
+      render: (c) => {
+        const band = riskBand(c.riskScore);
+        if (!band) return <span className="font-mono text-xs text-faint">—</span>;
+        return (
+          <span className="inline-flex items-center gap-2">
+            <span aria-hidden className={`h-1.5 w-1.5 ${SEVERITY_BAR[band]}`} />
+            <span className={`font-mono text-xs ${SEVERITY_TEXT[band]}`}>
+              {c.riskScore.toFixed(2)}
+            </span>
+          </span>
+        );
+      },
+    },
+    {
+      key: "createdAt",
+      header: "Created",
+      align: "right",
+      render: (c) => <span className="font-mono text-xs text-faint">{formatDate(c.createdAt)}</span>,
+    },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="flex items-baseline justify-between mb-8">
-        <h1 className="text-3xl">Cases</h1>
-        <button
-          onClick={() => setUploadOpen(true)}
-          className="bg-ink text-paper px-4 py-2 rounded text-sm font-medium"
-        >
-          Upload contract
-        </button>
-      </div>
-
-      <div className="flex gap-4 mb-6 text-sm">
-        <Link to="/approvals" className="underline">Approvals</Link>
-        <Link to="/admin/knowledge-base" className="underline">Knowledge base</Link>
-        {isAdmin && <Link to="/admin/users" className="underline">Users</Link>}
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <Tile label="Open cases" value={cases.length} />
-        <Tile label="Awaiting your decision" value={awaiting} />
-        <Tile label="High risk" value={highRisk} />
-      </div>
-
-      <div className="flex gap-2 mb-4 text-sm">
-        {["", "in_progress", "awaiting_review", "approved", "rejected"].map((value) => (
-          <button
-            key={value || "all"}
-            onClick={() => setFilter(value)}
-            className={`px-3 py-1 rounded border ${
-              filter === value ? "bg-ink text-paper border-ink" : "border-rule"
-            }`}
-          >
-            {value ? STATUS_LABEL[value] : "All"}
-          </button>
-        ))}
-      </div>
-
-      {isLoading ? (
-        <p className="text-sm text-ink/60">Loading cases.</p>
-      ) : cases.length === 0 ? (
-        <div className="border border-dashed border-rule rounded p-10 text-center">
-          <p className="mb-3">No cases yet.</p>
-          <button onClick={() => setUploadOpen(true)} className="underline text-sm">
-            Upload your first contract
-          </button>
+    <div className="mx-auto max-w-6xl">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Eyebrow>Workspace</Eyebrow>
+          <h1 className="mt-1 font-display text-3xl leading-none text-ink">Cases</h1>
         </div>
-      ) : (
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-ink/50">
-            <tr className="border-b border-rule">
-              <th className="py-2">Case</th>
-              <th>Status</th>
-              <th>Stage</th>
-              <th>Risk</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cases.map((c) => (
-              <tr
-                key={c.caseId}
-                onClick={() => navigate(`/contracts/${c.caseId}`)}
-                className="border-b border-rule/60 cursor-pointer hover:bg-white"
-              >
-                <td className="py-3 font-mono text-xs">{c.caseId.slice(0, 8)}</td>
-                <td>{STATUS_LABEL[c.status] ?? c.status}</td>
-                <td>{c.currentStage} of 8</td>
-                <td>{c.riskScore != null ? c.riskScore.toFixed(2) : "—"}</td>
-                <td className="text-ink/60">{new Date(c.createdAt).toLocaleDateString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+        <Button variant="primary" onClick={() => setUploadOpen(true)}>
+          Upload contract
+        </Button>
+      </div>
+
+      {/* Attention band: heading -> information -> rule. No boxes. */}
+      <div className="mt-8 grid grid-cols-1 gap-px border-y border-rule bg-rule sm:grid-cols-3">
+        <Metric label="Awaiting your decision" value={awaiting} tone={awaiting ? STATUS_BAR.awaiting_review : null} />
+        <Metric label="High risk" value={highRisk} tone={highRisk ? SEVERITY_BAR.high : null} />
+        <Metric label="Changes requested" value={changes} tone={changes ? STATUS_BAR.changes_requested : null} />
+      </div>
+
+      <TabRow options={FILTERS} value={filter} onChange={setFilter} className="mt-10" />
+
+      <DataTable
+        className="mt-1"
+        columns={columns}
+        rows={cases}
+        rowKey={(c) => c.caseId}
+        onRowClick={(c) => navigate(`/contracts/${c.caseId}`)}
+        tone={(c) => STATUS_BAR[c.status]}
+        loading={isLoading}
+        empty={
+          <EmptyState
+            title={filter ? "Nothing in this state" : "No cases yet"}
+            action={
+              filter ? (
+                <Button size="sm" onClick={() => setFilter("")}>
+                  Show all cases
+                </Button>
+              ) : (
+                <Button variant="primary" size="sm" onClick={() => setUploadOpen(true)}>
+                  Upload a contract
+                </Button>
+              )
+            }
+          >
+            {filter
+              ? "No cases currently hold this status."
+              : "Upload a contract to start the eight-stage review."}
+          </EmptyState>
+        }
+      />
 
       <UploadDialog
         open={uploadOpen}
@@ -115,11 +166,12 @@ export default function Dashboard() {
   );
 }
 
-function Tile({ label, value }) {
+function Metric({ label, value, tone }) {
   return (
-    <div className="border border-rule rounded p-4 bg-white">
-      <div className="text-3xl font-display">{value}</div>
-      <div className="text-xs uppercase tracking-wide text-ink/50 mt-1">{label}</div>
+    <div className="relative bg-paper px-5 py-5">
+      {tone && <span aria-hidden className={`absolute inset-y-0 left-0 w-0.5 ${tone}`} />}
+      <div className="font-display text-4xl leading-none text-ink">{value}</div>
+      <Eyebrow className="mt-2">{label}</Eyebrow>
     </div>
   );
 }

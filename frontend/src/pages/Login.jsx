@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/auth";
+import Button from "../components/ui/Button";
+import { Label, TextInput } from "../components/ui/Inputs";
+import { Eyebrow, ErrorNote } from "../components/ui/Primitives";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
   async function handleSignIn() {
     setError(null);
+    setBusy(true);
     try {
       await login(email, password);
       navigate("/dashboard");
@@ -19,40 +24,79 @@ export default function Login() {
           ? "That email and password don't match an account."
           : "Sign-in is unavailable right now. Try again in a moment."
       );
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
-    <div className="min-h-screen grid place-items-center px-6">
-      <div className="w-full max-w-sm">
-        <h1 className="text-3xl mb-1">Contract review</h1>
-        <p className="text-sm text-ink/60 mb-8">Sign in to open your cases.</p>
+    <div className="grid min-h-screen lg:grid-cols-[1fr_460px]">
+      {/* Left plate: identity only. No marketing, no illustration. */}
+      <div className="relative hidden flex-col justify-between border-r border-rule bg-surface p-12 lg:flex">
+        <div>
+          <div className="font-display text-3xl leading-none tracking-tight text-ink">SynthX</div>
+          <Eyebrow className="mt-2">Contract Intelligence &amp; Approval</Eyebrow>
+        </div>
 
-        <label className="block text-xs font-medium mb-1">Email</label>
-        <input
-          className="w-full border border-rule rounded px-3 py-2 mb-4 bg-white"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-        />
+        <div className="max-w-md">
+          <p className="font-display text-2xl leading-snug text-ink">
+            Every contract is read, weighed and recorded before anyone signs.
+          </p>
+          <p className="mt-4 text-sm leading-relaxed text-muted">
+            Eight review stages run on upload. A human decision closes the case.
+            Every step is written to the audit trail.
+          </p>
+        </div>
 
-        <label className="block text-xs font-medium mb-1">Password</label>
-        <input
-          className="w-full border border-rule rounded px-3 py-2 mb-6 bg-white"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
-        />
+        <div className="flex gap-px" aria-hidden>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-1 flex-1 bg-rule" />
+          ))}
+        </div>
+      </div>
 
-        {error && <p className="text-sm text-severity-critical mb-4">{error}</p>}
+      <div className="grid place-items-center px-6 py-16">
+        <div className="w-full max-w-sm">
+          <div className="lg:hidden">
+            <div className="font-display text-2xl leading-none text-ink">SynthX</div>
+            <Eyebrow className="mt-1.5 mb-8">Contract Intelligence &amp; Approval</Eyebrow>
+          </div>
 
-        <button
-          onClick={handleSignIn}
-          className="w-full bg-ink text-paper py-2.5 rounded font-medium"
-        >
-          Sign in
-        </button>
+          <h1 className="font-display text-2xl text-ink">Sign in</h1>
+          <p className="mb-8 mt-1 text-sm text-muted">Open the cases assigned to you.</p>
+
+          <Label htmlFor="email">Email</Label>
+          <TextInput
+            id="email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mb-4"
+          />
+
+          <Label htmlFor="password">Password</Label>
+          <TextInput
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
+            className="mb-6"
+          />
+
+          {error && <ErrorNote className="mb-5">{error}</ErrorNote>}
+
+          <Button
+            variant="primary"
+            onClick={handleSignIn}
+            disabled={busy || !email || !password}
+            className="w-full"
+          >
+            {busy ? "Signing in" : "Sign in"}
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,11 @@
-const RESULT_STYLE = {
-  pass: "text-severity-low", fail: "text-severity-critical", uncertain: "text-severity-medium",
+import DataTable from "../ui/DataTable";
+import { ResultTag } from "../ui/Tags";
+import { Eyebrow, NotYet, SectionHeading } from "../ui/Primitives";
+
+const RESULT_BAR = {
+  pass: "bg-severity-low",
+  fail: "bg-severity-critical",
+  uncertain: "bg-severity-medium",
 };
 
 export default function Compliance({ contractCase }) {
@@ -7,30 +13,70 @@ export default function Compliance({ contractCase }) {
   const frameworks = contractCase?.compliance?.frameworksChecked ?? [];
 
   if (findings.length === 0)
-    return <p className="text-sm text-ink/60">Compliance verification runs at Stage 3.</p>;
+    return (
+      <div>
+        <SectionHeading title="Compliance" />
+        <NotYet stage={3}>
+          Compliance verification checks each clause against the frameworks held in the
+          knowledge base and cites the provision it relied on.
+        </NotYet>
+      </div>
+    );
+
+  const tally = ["fail", "uncertain", "pass"].map((r) => ({
+    result: r,
+    count: findings.filter((f) => f.result === r).length,
+  }));
 
   return (
     <div>
-      <p className="text-sm text-ink/60 mb-5">
-        Checked against: {frameworks.join(", ") || "no frameworks recorded"}
-      </p>
-      <table className="w-full text-sm bg-white border border-rule rounded">
-        <thead className="text-left text-xs uppercase text-ink/50">
-          <tr className="border-b border-rule">
-            <th className="p-2">Clause</th><th>Framework</th><th>Result</th><th>Citation</th>
-          </tr>
-        </thead>
-        <tbody>
-          {findings.map((f, i) => (
-            <tr key={i} className="border-b border-rule/50 align-top">
-              <td className="p-2 font-mono text-xs">{f.clause_ref}</td>
-              <td>{f.framework}</td>
-              <td className={`font-medium ${RESULT_STYLE[f.result]}`}>{f.result}</td>
-              <td className="text-ink/70">{f.citation}<div className="text-xs mt-1">{f.detail}</div></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <SectionHeading title="Compliance" meta={`${findings.length} checks`} />
+
+      <div className="mt-6 flex flex-wrap gap-x-10 gap-y-4 border-y border-rule py-5">
+        {tally.map((t) => (
+          <div key={t.result}>
+            <div className="font-display text-2xl leading-none text-ink">{t.count}</div>
+            <Eyebrow className="mt-1.5">{t.result}</Eyebrow>
+          </div>
+        ))}
+        <div className="min-w-0 flex-1">
+          <Eyebrow>Frameworks checked</Eyebrow>
+          <p className="mt-1.5 font-mono text-2xs text-muted">
+            {frameworks.join(" · ") || "none recorded"}
+          </p>
+        </div>
+      </div>
+
+      <DataTable
+        className="mt-8"
+        rows={findings}
+        rowKey={(_, i) => i}
+        tone={(f) => RESULT_BAR[f.result]}
+        columns={[
+          {
+            key: "clause_ref",
+            header: "Clause",
+            render: (f) => <span className="font-mono text-2xs text-faint">{f.clause_ref}</span>,
+          },
+          {
+            key: "framework",
+            header: "Framework",
+            render: (f) => <span className="text-sm text-ink">{f.framework}</span>,
+          },
+          { key: "result", header: "Result", render: (f) => <ResultTag result={f.result} /> },
+          {
+            key: "citation",
+            header: "Basis",
+            width: "50%",
+            render: (f) => (
+              <span className="block">
+                <span className="block text-xs text-muted">{f.citation}</span>
+                {f.detail && <span className="mt-1 block text-xs text-faint">{f.detail}</span>}
+              </span>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

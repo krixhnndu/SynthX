@@ -1,41 +1,76 @@
+import { Confidence } from "../ui/Tags";
+import { Eyebrow, NotYet, Panel, SectionHeading } from "../ui/Primitives";
+
 export default function Explainability({ contractCase }) {
   const justifications = contractCase?.explainability?.justifications ?? [];
   const consensus = contractCase?.consensus ?? {};
 
   if (justifications.length === 0)
-    return <p className="text-sm text-ink/60">Explanations are produced at Stage 6.</p>;
+    return (
+      <div>
+        <SectionHeading title="Explainability" />
+        <NotYet stage={6}>
+          Every decision the agents reached is restated here with the clauses,
+          regulations and evidence it rested on.
+        </NotYet>
+      </div>
+    );
 
   return (
     <div>
+      <SectionHeading title="Explainability" meta={`${justifications.length} recorded decisions`} />
+
       {consensus.finalRecommendation && (
-        <div className="bg-white border border-rule rounded p-5 mb-6">
-          <h3 className="text-lg mb-2">Final recommendation</h3>
-          <p className="text-sm">{consensus.finalRecommendation}</p>
+        <Panel className="mt-6" tone="bg-severity-info">
+          <Eyebrow>Final recommendation</Eyebrow>
+          <p className="mt-2 max-w-3xl font-display text-lg leading-snug text-ink">
+            {consensus.finalRecommendation}
+          </p>
           {consensus.escalationReasons?.length > 0 && (
-            <ul className="text-xs text-ink/60 mt-3 list-disc pl-4">
-              {consensus.escalationReasons.map((r, i) => <li key={i}>{r}</li>)}
-            </ul>
+            <>
+              <Eyebrow className="mt-5">Escalated because</Eyebrow>
+              <ul className="mt-2 space-y-1">
+                {consensus.escalationReasons.map((r, i) => (
+                  <li key={i} className="border-l border-rule pl-3 text-xs text-muted">
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
-        </div>
+        </Panel>
       )}
 
-      {justifications.map((j, i) => (
-        <div key={i} className="bg-white border border-rule rounded p-5 mb-3">
-          <div className="flex justify-between mb-2">
-            <h4 className="font-medium">{j.decision}</h4>
-            <span className="text-xs text-ink/50">
-              {Math.round((j.confidence ?? 0) * 100)}% confidence
-            </span>
+      <div className="mt-10 divide-y divide-rule border-y border-rule">
+        {justifications.map((j, i) => (
+          <div key={i} className="py-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h4 className="font-display text-base text-ink">{j.decision}</h4>
+              <Confidence value={j.confidence} />
+            </div>
+
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">{j.legalRationale}</p>
+
+            <dl className="mt-4 grid gap-x-10 gap-y-3 sm:grid-cols-2">
+              <Cited label="Clauses" values={j.clauseReferences} />
+              <Cited label="Regulations" values={j.regulationsConsulted} />
+              <Cited label="Evidence" values={j.evidenceCitations} />
+              <Cited label="Contributing agents" values={j.contributingAgents} />
+            </dl>
           </div>
-          <p className="text-sm mb-3">{j.legalRationale}</p>
-          <div className="text-xs text-ink/60 space-y-1">
-            <div>Clauses: {(j.clauseReferences ?? []).join(", ") || "—"}</div>
-            <div>Regulations: {(j.regulationsConsulted ?? []).join(", ") || "—"}</div>
-            <div>Evidence: {(j.evidenceCitations ?? []).join("; ") || "—"}</div>
-            <div>Agents: {(j.contributingAgents ?? []).join(", ") || "—"}</div>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Cited({ label, values }) {
+  return (
+    <div className="min-w-0">
+      <Eyebrow>{label}</Eyebrow>
+      <dd className="mt-1 font-mono text-2xs leading-relaxed text-muted">
+        {values?.length ? values.join(" · ") : "—"}
+      </dd>
     </div>
   );
 }

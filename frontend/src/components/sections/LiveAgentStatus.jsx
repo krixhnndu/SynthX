@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import ReactFlow, { Background, Controls } from "reactflow";
 import "reactflow/dist/style.css";
+import { PipelineChecklist } from "../StageRail";
+import { SectionHeading } from "../ui/Primitives";
+import { RUN_STATE_HEX, runsByAgent } from "../../lib/pipeline";
+import { titleCase } from "../../lib/format";
 
 const STAGE_ROWS = [
   ["ocr_parsing"],
@@ -12,14 +16,9 @@ const STAGE_ROWS = [
   ["report_generation"],
 ];
 
-const STATUS_COLOR = {
-  pending: "#d9d6cf", running: "#c8922a", completed: "#5b8c5a",
-  failed: "#a12b2b", skipped: "#9a9a9a",
-};
-
-export default function LiveAgentStatus({ status }) {
+export default function LiveAgentStatus({ status, contractCase }) {
   const runs = status?.agents ?? [];
-  const byName = Object.fromEntries(runs.map((r) => [r.agent, r]));
+  const byName = runsByAgent(runs);
 
   const { nodes, edges } = useMemo(() => {
     const nodes = [];
@@ -28,20 +27,37 @@ export default function LiveAgentStatus({ status }) {
       row.forEach((agent, colIndex) => {
         const run = byName[agent];
         const state = run?.status ?? "pending";
+        const color = RUN_STATE_HEX[state];
         nodes.push({
           id: agent,
           position: { x: colIndex * 230 - (row.length - 1) * 115, y: rowIndex * 110 },
-          data: { label: `${agent.replace(/_/g, " ")}\n${state}` },
+          data: { label: `${titleCase(agent).toUpperCase()}\n${state}` },
           style: {
-            border: `2px solid ${STATUS_COLOR[state]}`,
-            borderRadius: 6, padding: 8, width: 190,
-            fontSize: 12, whiteSpace: "pre-line", background: "#fff",
+            border: `1px solid ${state === "pending" ? "#1e242c" : color}`,
+            borderLeft: `2px solid ${color}`,
+            borderRadius: 2,
+            padding: 10,
+            width: 190,
+            fontSize: 10,
+            letterSpacing: "0.08em",
+            lineHeight: 1.6,
+            whiteSpace: "pre-line",
+            background: "#10141a",
+            color: state === "pending" ? "#59606a" : "#e9e6df",
+            fontFamily: "IBM Plex Mono, monospace",
           },
         });
       });
       if (rowIndex > 0) {
         STAGE_ROWS[rowIndex - 1].forEach((from) => {
-          row.forEach((to) => edges.push({ id: `${from}-${to}`, source: from, target: to }));
+          row.forEach((to) =>
+            edges.push({
+              id: `${from}-${to}`,
+              source: from,
+              target: to,
+              style: { stroke: "#1e242c", strokeWidth: 1 },
+            })
+          );
         });
       }
     });
@@ -49,11 +65,19 @@ export default function LiveAgentStatus({ status }) {
   }, [status]);
 
   return (
-    <div className="bg-white border border-rule rounded" style={{ height: 620 }}>
-      <ReactFlow nodes={nodes} edges={edges} fitView>
-        <Background />
-        <Controls />
-      </ReactFlow>
+    <div>
+      <SectionHeading title="Pipeline" meta={`${runs.length} agent runs recorded`} />
+
+      <div className="mt-6 grid gap-10 xl:grid-cols-[1fr_320px]">
+        <div className="border border-rule bg-surface" style={{ height: 620 }}>
+          <ReactFlow nodes={nodes} edges={edges} fitView proOptions={{ hideAttribution: false }}>
+            <Background color="#1e242c" gap={20} size={1} />
+            <Controls showInteractive={false} />
+          </ReactFlow>
+        </div>
+
+        <PipelineChecklist status={status} caseStatus={contractCase?.status} />
+      </div>
     </div>
   );
 }
