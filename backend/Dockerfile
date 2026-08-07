@@ -16,8 +16,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 COPY requirements.txt .
 
-# Step 1: Install CPU-only torch first so sentence-transformers doesn't
-# pull in 4GB of CUDA/nvidia wheels (no GPU inside Docker).
+ENV PIP_NO_CACHE_DIR=0
+
+# Step 1: Install CPU-only torch first so sentence-transformers doesn't pull in 4GB of CUDA/nvidia wheels (no GPU inside Docker).
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cpu
 
