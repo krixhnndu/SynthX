@@ -14,6 +14,9 @@ import NegotiationStrategy from "../components/sections/NegotiationStrategy";
 import Explainability from "../components/sections/Explainability";
 import LiveAgentStatus from "../components/sections/LiveAgentStatus";
 import ReviewApproval from "../components/sections/ReviewApproval";
+import Report from "../components/sections/Report";
+import Collaboration from "../components/sections/Collaboration";
+import VersionHistory from "../components/sections/VersionHistory";
 
 const SECTIONS = [
   { key: "viewer", label: "Contract", Component: ContractViewer },
@@ -25,7 +28,10 @@ const SECTIONS = [
   { key: "negotiation", label: "Negotiation", Component: NegotiationStrategy },
   { key: "explainability", label: "Explainability", Component: Explainability },
   { key: "agents", label: "Agent status", Component: LiveAgentStatus },
+  { key: "report", label: "Report", Component: Report },
   { key: "review", label: "Review & approval", Component: ReviewApproval },
+  { key: "collaboration", label: "Collaboration", Component: Collaboration },
+  { key: "history", label: "Version history", Component: VersionHistory },
 ];
 
 export default function CaseWorkspace() {

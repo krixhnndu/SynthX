@@ -16,6 +16,7 @@ RESOURCE_REPORT = "report"
 RESOURCE_REVIEW = "review"
 RESOURCE_AUDIT = "audit"
 RESOURCE_KNOWLEDGE = "legal_knowledge"
+RESOURCE_USER = "user"
 
 # Report sections each role may see, applied by api/deps.filter_case_for_roles
 ROLE_REPORT_SECTIONS: dict[str, list[str] | str] = {

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, current_user
 from app.core import rbac
 from app.core.audit import record as audit_record
+from app.core.versioning import record_version
 from app.db.models import ContractCase, ReviewDecision
 from app.db.session import get_db
 from app.schemas.api import ReviewSubmission
@@ -64,6 +65,8 @@ def submit_review(
     case.status = DECISION_TO_STATUS[body.decision]
     case.version += 1
     db.commit()
+
+    record_version(db, case_id, case.version, payload, source=f"review:{body.decision}")
 
     audit_record(db, actor=user.email, actor_id=user.id, action="review_decision",
                  case_id=case_id, meta={"decision": body.decision, "roles": user.roles})

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { useAuth } from "../api/auth";
 import UploadDialog from "../components/UploadDialog";
 
 const STATUS_LABEL = {
@@ -17,6 +18,8 @@ export default function Dashboard() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { roles } = useAuth();
+  const isAdmin = roles.includes("Admin");
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ["cases", filter],
@@ -37,6 +40,12 @@ export default function Dashboard() {
         >
           Upload contract
         </button>
+      </div>
+
+      <div className="flex gap-4 mb-6 text-sm">
+        <Link to="/approvals" className="underline">Approvals</Link>
+        <Link to="/admin/knowledge-base" className="underline">Knowledge base</Link>
+        {isAdmin && <Link to="/admin/users" className="underline">Users</Link>}
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-8">

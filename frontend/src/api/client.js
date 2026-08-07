@@ -18,3 +18,18 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Fetch a file through the authenticated client and trigger a browser download.
+export async function downloadBlob(url) {
+  const res = await api.get(url, { responseType: "blob" });
+  const blobUrl = URL.createObjectURL(res.data);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  const disposition = res.headers?.["content-disposition"] ?? "";
+  const match = /filename="?([^";]+)"?/.exec(disposition);
+  a.download = match ? match[1] : "download";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
+}

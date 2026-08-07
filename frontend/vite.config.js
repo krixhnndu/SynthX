@@ -9,6 +9,8 @@ export default defineConfig({
       "/auth": "http://localhost:8000",
       "/contracts": "http://localhost:8000",
       "/internal": "http://localhost:8000",
+      "/approvals": "http://localhost:8000",
+      "/users": "http://localhost:8000",
       "/ws": { target: "ws://localhost:8000", ws: true },
     },
   },

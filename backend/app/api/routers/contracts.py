@@ -12,6 +12,7 @@ from app.api.deps import CurrentUser, current_user, filter_case_for_roles, requi
 from app.config import settings
 from app.core import rbac
 from app.core.audit import record as audit_record
+from app.core.versioning import record_version
 from app.db.models import AgentRun, Contract, ContractCase
 from app.db.session import get_db
 from app.schemas.contract_case import ContractCasePayload
@@ -68,6 +69,8 @@ async def upload_contract(
     db.add(contract)
     case.contract_id = contract.id
     db.commit()
+
+    record_version(db, case_id, 1, payload, source=f"upload:{user.email}")
 
     audit_record(db, actor=user.email, actor_id=user.id, action="contract_uploaded",
                  case_id=case_id, meta={"filename": file.filename,

@@ -29,6 +29,9 @@ POLICIES = [
     ("Admin", rbac.RESOURCE_AUDIT, "read", None),
     ("Admin", rbac.RESOURCE_KNOWLEDGE, "ingest", None),
     ("Admin", rbac.RESOURCE_KNOWLEDGE, "query", None),
+    ("Admin", rbac.RESOURCE_USER, "create", None),
+    ("Admin", rbac.RESOURCE_USER, "read", None),
+    ("Admin", rbac.RESOURCE_USER, "update", None),
 
     ("Legal", rbac.RESOURCE_CASE, "create", None),
     ("Legal", rbac.RESOURCE_CASE, "read", None),

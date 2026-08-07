@@ -88,6 +88,41 @@ class ContractCase(Base):
     __table_args__ = (Index("ix_cases_status_created", "status", "created_at"),)
 
 
+class CaseVersion(Base):
+    """Append-only full payload snapshot for Version History (SRS section 8.6)."""
+    __tablename__ = "case_versions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    case_id: Mapped[str] = mapped_column(ForeignKey("contract_cases.id", ondelete="CASCADE"), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_by: Mapped[str | None] = mapped_column(String(200), nullable=True)  # agent name or user email
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("case_id", "version", name="uq_case_version"),)
+
+
+class CaseComment(Base):
+    """Flat per-case comments for Multi-user Collaboration (SRS section 8.9)."""
+    __tablename__ = "case_comments"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    case_id: Mapped[str] = mapped_column(ForeignKey("contract_cases.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[str] = mapped_column(String(36))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class CaseAssignee(Base):
+    """Who a case is assigned to for review (SRS section 8.9)."""
+    __tablename__ = "case_assignees"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    case_id: Mapped[str] = mapped_column(ForeignKey("contract_cases.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(String(36))
+    assigned_by: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("case_id", "user_id", name="uq_case_assignee"),)
+
+
 class AgentRun(Base):
     __tablename__ = "agent_runs"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)

@@ -3,7 +3,9 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import audit, auth, contracts, internal, review, ws
+from app.api.routers import (
+    approvals, audit, auth, collab, contracts, internal, review, users, versions, ws,
+)
 from app.config import settings
 
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +25,10 @@ app.include_router(contracts.router)
 app.include_router(review.router)
 app.include_router(audit.router)
 app.include_router(internal.router)
+app.include_router(collab.router)
+app.include_router(versions.router)
+app.include_router(approvals.router)
+app.include_router(users.router)
 app.include_router(ws.router)
 
 

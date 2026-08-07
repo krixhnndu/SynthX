@@ -10,6 +10,7 @@ from typing import Any
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from app.core.versioning import record_version
 from app.db.models import ContractCase
 from app.schemas.contract_case import NAMESPACE_OWNER
 
@@ -39,13 +40,21 @@ def write_namespace(db: Session, case_id: str, agent_name: str, namespace: str,
         payload[namespace] = data
         payload["version"] = current_version + 1
 
+        values: dict[str, Any] = {"payload": payload, "version": current_version + 1}
+        # The risk namespace is the only source of the authoritative risk score.
+        # Keep the relational column in sync so the dashboard and the review RBAC
+        # gate (max_risk_score conditions) see real values.
+        if namespace == "risk":
+            values["risk_score"] = (data or {}).get("riskScore")
+
         result = db.execute(
             update(ContractCase)
             .where(ContractCase.id == case_id, ContractCase.version == current_version)
-            .values(payload=payload, version=current_version + 1)
+            .values(**values)
         )
         if result.rowcount == 1:
             db.commit()
+            record_version(db, case_id, current_version + 1, payload, source=agent_name)
             return current_version + 1
         db.rollback()
         db.expire_all()
@@ -69,6 +78,7 @@ def append_legal_evidence(db: Session, case_id: str, evidence: dict[str, Any],
         )
         if result.rowcount == 1:
             db.commit()
+            record_version(db, case_id, current_version + 1, payload, source="legal_knowledge")
             return current_version + 1
         db.rollback()
         db.expire_all()
