@@ -11,6 +11,11 @@ Usage (from backend/):
 """
 import asyncio
 import sys
+from pathlib import Path
+
+# Anchor backend/ on sys.path so `app` resolves no matter where the script is
+# launched from (python scripts/run_pipeline_local.py puts scripts/ first, not backend/).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sqlalchemy import select
 

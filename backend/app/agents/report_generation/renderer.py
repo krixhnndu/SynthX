@@ -3,8 +3,6 @@ section-structured HTML, not a form layout (docs/OPEN_DECISIONS.md, gap 6)."""
 from datetime import datetime
 from html import escape
 
-from weasyprint import HTML
-
 from app.agents.report_generation.schema import REPORT_SECTIONS
 
 _CSS = """
@@ -31,4 +29,8 @@ def render_html(case_id: str, sections: dict[str, str]) -> str:
 
 
 def render_pdf(case_id: str, sections: dict[str, str]) -> bytes:
+    # Imported lazily: WeasyPrint needs GTK/Pango system libraries that are not
+    # present on every platform (notably a bare Windows venv). Deferring the import
+    # keeps the agent registry importable even where the PDF render is unavailable.
+    from weasyprint import HTML
     return HTML(string=render_html(case_id, sections)).write_pdf()

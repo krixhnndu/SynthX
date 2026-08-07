@@ -160,7 +160,10 @@ def get_report(
     if not report.get("sections"):
         raise HTTPException(status.HTTP_409_CONFLICT, "report not generated yet")
 
-    if download and report.get("renderRef"):
+    if download:
+        if not report.get("renderRef"):
+            raise HTTPException(status.HTTP_409_CONFLICT,
+                                "PDF render not available for this case")
         pdf = get_storage().get(report["renderRef"])
         return Response(
             pdf, media_type="application/pdf",

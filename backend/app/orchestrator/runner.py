@@ -48,6 +48,27 @@ def _should_skip(agent_name: str, snapshot: dict[str, Any]) -> bool:
     return False
 
 
+def _existing_run(case_id: str, agent_name: str) -> dict[str, str] | None:
+    """Return the agent's prior result if it already succeeded at its stage.
+
+    Pipeline re-runs (crash restart, or the local no-Redis script) restart the graph
+    at stage 1. Re-running agents that already completed would re-burn LLM quota and
+    overwrite their namespace snapshot with an identical CAS write - pointless. Only
+    failed/pending agents execute on a re-run.
+    """
+    db = SessionLocal()
+    try:
+        run = db.execute(
+            select(AgentRun).where(AgentRun.case_id == case_id,
+                                   AgentRun.agent_name == agent_name)
+        ).scalars().first()
+        if run is not None and run.status in SATISFYING_STATUSES:
+            return {"agent": agent_name, "status": run.status}
+        return None
+    finally:
+        db.close()
+
+
 def _set_run(case_id: str, agent_name: str, stage: int, **fields) -> None:
     db = SessionLocal()
     try:
@@ -144,6 +165,10 @@ def _finalise_pipeline(case_id: str) -> None:
 
 
 async def _run_agent(case_id: str, agent_name: str, stage: int) -> dict[str, Any]:
+    existing = await asyncio.to_thread(_existing_run, case_id, agent_name)
+    if existing is not None:
+        return existing
+
     snapshot = await asyncio.to_thread(_snapshot, case_id)
 
     if _should_skip(agent_name, snapshot):
@@ -236,7 +261,7 @@ async def run_stage(case_id: str, stage: int) -> dict[str, Any]:
     await publish(case_id, {"type": "stage", "stage": stage, "name": spec.name,
                             "status": "started"})
 
-    if spec.parallel:
+    if spec.parallel and settings.parallel_stages:
         results = await asyncio.gather(
             *[_run_agent(case_id, agent, stage) for agent in spec.agents]
         )
