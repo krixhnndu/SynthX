@@ -1,3 +1,13 @@
+name: synthx
+
+# BuildKit must be enabled for --mount=type=cache in Dockerfiles.
+# Docker Desktop has it on by default; for plain Docker set:
+#   DOCKER_BUILDKIT=1 docker-compose up --build
+
+x-build-defaults: &build-defaults
+  args:
+    BUILDKIT_INLINE_CACHE: "1"
+
 services:
 
   # ─── Backend (FastAPI) ───────────────────────────────────────────────────────
@@ -5,6 +15,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+      cache_from:
+        - synthx_backend:latest
     container_name: synthx_backend
     restart: unless-stopped
     env_file: .env
@@ -35,6 +49,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+      cache_from:
+        - synthx_frontend:latest
     container_name: synthx_frontend
     restart: unless-stopped
     ports:
