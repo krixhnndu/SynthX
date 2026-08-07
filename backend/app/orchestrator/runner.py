@@ -182,14 +182,18 @@ async def _run_agent(case_id: str, agent_name: str, stage: int) -> dict[str, Any
             if attempt < settings.node_max_retries:
                 await asyncio.sleep(settings.node_backoff_base_seconds ** attempt)
 
-    if last_error is not None:
+    if last_error is not None or output is None:
+        # output is None only when the retry loop never produced one (e.g. a
+        # node_max_retries misconfiguration); treat that as a failure, not a crash.
+        reason = last_error or Exception(
+            "no generation attempt ran (node_max_retries must be >= 1)")
         await asyncio.to_thread(
             _set_run, case_id, agent_name, stage, status="failed",
-            completed_at=datetime.now(timezone.utc), error=str(last_error)[:2000],
+            completed_at=datetime.now(timezone.utc), error=str(reason)[:2000],
         )
         await publish(case_id, {"type": "agent_status", "agent": agent_name,
-                                "status": "failed", "error": str(last_error)[:500]})
-        return {"agent": agent_name, "status": "failed", "error": str(last_error)}
+                                "status": "failed", "error": str(reason)[:500]})
+        return {"agent": agent_name, "status": "failed", "error": str(reason)}
 
     await asyncio.to_thread(
         _set_run, case_id, agent_name, stage, status="completed",
