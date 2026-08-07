@@ -25,7 +25,7 @@ router = APIRouter(prefix="/contracts", tags=["contracts"])
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def upload_contract(
     file: UploadFile = File(...),
-    comparison_file: UploadFile | None = File(None),
+    comparison_file: UploadFile | str | None = File(None),
     notes: str | None = Form(None),
     user: CurrentUser = Depends(require(rbac.RESOURCE_CASE, "create")),
     db: Session = Depends(get_db),
@@ -38,7 +38,7 @@ async def upload_contract(
     file_ref = storage.put(f"contracts/{case_id}/{file.filename}", data, file.content_type)
 
     comparison_ref = None
-    if comparison_file is not None:
+    if isinstance(comparison_file, UploadFile):
         comparison_bytes = await comparison_file.read()
         comparison_ref = storage.put(
             f"contracts/{case_id}/prior/{comparison_file.filename}",
@@ -53,7 +53,7 @@ async def upload_contract(
     payload["_taskPayload"] = {
         "ocr_parsing": {"filename": file.filename},
         "cross_document_comparison": {
-            "comparisonFilename": comparison_file.filename if comparison_file else None
+            "comparisonFilename": comparison_file.filename if isinstance(comparison_file, UploadFile) else None
         },
     }
     if notes:
