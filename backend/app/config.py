@@ -42,8 +42,11 @@ class Settings(BaseSettings):
     llm_schema_retries: int = 2
 
     # --- Vector store (ChromaDB, decided) ---
+    chroma_backend: str = "embedded"        # embedded | http (external server, multi-instance)
     chroma_persist_dir: str = "./data/chroma"
     chroma_collection: str = "legal_knowledge"
+    chroma_host: str = "localhost"
+    chroma_port: int = 8000
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     rag_top_k: int = 5
 

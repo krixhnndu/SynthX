@@ -8,6 +8,7 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agents.ocr_parsing.extractors import detect_format
 from app.api.deps import CurrentUser, current_user, filter_case_for_roles, require
 from app.config import settings
 from app.core import rbac
@@ -33,6 +34,7 @@ async def upload_contract(
     storage = get_storage()
 
     data = await file.read()
+    source_format = detect_format(data, file.filename)
     file_ref = storage.put(f"contracts/{case_id}/{file.filename}", data, file.content_type)
 
     comparison_ref = None
@@ -64,7 +66,7 @@ async def upload_contract(
 
     contract = Contract(
         case_id=case_id, original_filename=file.filename, storage_ref=file_ref,
-        uploaded_by=user.id, source_format="pdf", comparison_storage_ref=comparison_ref,
+        uploaded_by=user.id, source_format=source_format, comparison_storage_ref=comparison_ref,
     )
     db.add(contract)
     case.contract_id = contract.id

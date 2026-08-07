@@ -12,10 +12,18 @@ from app.knowledge.embeddings import embed
 
 @lru_cache
 def get_collection():
-    client = chromadb.PersistentClient(
-        path=settings.chroma_persist_dir,
-        settings=ChromaSettings(anonymized_telemetry=False),
-    )
+    # Embedded (default, local dir) or an external Chroma server. The http mode
+    # is the multi-instance path; it is config-ready but not yet tested/deployed.
+    if settings.chroma_backend == "http":
+        client = chromadb.HttpClient(
+            host=settings.chroma_host, port=settings.chroma_port,
+            settings=ChromaSettings(anonymized_telemetry=False),
+        )
+    else:
+        client = chromadb.PersistentClient(
+            path=settings.chroma_persist_dir,
+            settings=ChromaSettings(anonymized_telemetry=False),
+        )
     return client.get_or_create_collection(
         name=settings.chroma_collection, metadata={"hnsw:space": "cosine"}
     )

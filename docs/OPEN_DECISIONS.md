@@ -46,6 +46,13 @@ the parallelism in Stage 3 is concurrency in the agents and the LLM calls, not i
 database; and a single file cannot be shared by API and worker processes on separate
 machines, which caps horizontal scaling at one host.
 
+The Postgres path is pre-wired but untested: `psycopg2` is in requirements.txt, and
+`app/db/session.py` applies its SQLite pragmas and connect args conditionally, so a
+`postgresql+psycopg2://` URL loads without modification. The vector store has the same
+story: `CHROMA_BACKEND=http` (with `CHROMA_HOST`/`CHROMA_PORT`) swaps the embedded
+`PersistentClient` for an external Chroma `HttpClient`. Neither branch has been run
+against a live server, so the first real deployment should treat both as unproven.
+
 ## No containers
 
 Docker is removed. The API, the arq worker, Redis, Tesseract, Poppler and the WeasyPrint
