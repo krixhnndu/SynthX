@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SynthX — Dev Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0b0f;
+      --surface: #111318;
+      --surface2: #1a1d26;
+      --border: rgba(255,255,255,0.07);
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --danger: #ff4d6a;
+      --warn: #f59e0b;
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 220px;
+      min-height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+    }
+    .logo {
+      padding: 0 20px 24px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo span { font-size: 11px; font-weight: 400; display: block; opacity: .5; -webkit-text-fill-color: #6b7280; margin-top: 2px; }
+    nav { padding: 16px 12px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      cursor: pointer; font-size: 14px; font-weight: 500;
+      color: var(--muted); transition: all .15s;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(108,99,255,.15); color: var(--accent); }
+    .nav-icon { font-size: 16px; }
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+    }
+    #auth-status { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+    .dot.green { background: var(--accent2); }
+
+    /* ── Main ── */
+    #main {
+      margin-left: 220px;
+      flex: 1;
+      padding: 32px;
+      max-width: calc(100vw - 220px);
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; letter-spacing: .5px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+    }
+
+    /* ── Stats row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-value.green { color: var(--accent2); }
+    .stat-value.purple { color: var(--accent); }
+    .stat-value.red { color: var(--danger); }
+
+    /* ── Form elements ── */
+    input, textarea, select {
+      width: 100%; padding: 10px 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit;
+      font-size: 14px; outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .form-group { margin-bottom: 12px; }
+    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; font-weight: 500; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none; transition: all .15s;
+    }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: #7c73ff; transform: translateY(-1px); }
+    .btn-success { background: var(--accent2); color: #0a0b0f; }
+    .btn-success:hover { opacity: .85; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+
+    /* ── Response box ── */
+    .response-box {
+      background: #0d1117; border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px;
+      font-family: 'Courier New', monospace; font-size: 12.5px;
+      color: #7ee8a2; max-height: 400px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-all;
+      margin-top: 12px;
+    }
+    .response-box.error { color: #ff8094; }
+    .response-box.empty { color: var(--muted); font-style: italic; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+    }
+    .badge-purple { background: rgba(108,99,255,.2); color: var(--accent); }
+    .badge-green { background: rgba(0,212,170,.15); color: var(--accent2); }
+    .badge-red { background: rgba(255,77,106,.15); color: var(--danger); }
+    .badge-yellow { background: rgba(245,158,11,.15); color: var(--warn); }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,.03); }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    /* ── Tab bar ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tab {
+      padding: 8px 16px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer; color: var(--muted);
+      transition: all .15s;
+    }
+    .tab.active { background: rgba(108,99,255,.15); color: var(--accent); }
+    .tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+    /* ── Page ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── Upload drop zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 40px; text-align: center; cursor: pointer;
+      transition: all .2s; margin-bottom: 12px;
+    }
+    .drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: rgba(108,99,255,.05); }
+    .drop-zone-icon { font-size: 36px; margin-bottom: 8px; }
+    .drop-zone-text { color: var(--muted); font-size: 13px; }
+    .drop-zone-text strong { color: var(--text); }
+
+    /* ── Toast ── */
+    #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      padding: 12px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      animation: slideIn .25s ease; max-width: 300px;
+    }
+    .toast.success { background: rgba(0,212,170,.2); border: 1px solid rgba(0,212,170,.3); color: var(--accent2); }
+    .toast.error { background: rgba(255,77,106,.2); border: 1px solid rgba(255,77,106,.3); color: var(--danger); }
+    @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── Health indicator ── */
+    .health-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .health-item {
+      background: var(--surface2); border-radius: 8px; padding: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .health-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+    .health-dot.ok { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+    .health-dot.fail { background: var(--danger); }
+    .health-dot.checking { background: var(--warn); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+    .health-label { font-size: 13px; font-weight: 500; }
+    .health-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Page header ── */
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+    /* ── Login overlay ── */
+    #login-overlay {
+      position: fixed; inset: 0;
+      background: rgba(10,11,15,.95);
+      backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 40px; width: 380px;
+    }
+    .login-logo { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
+    .login-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+    .login-error { color: var(--danger); font-size: 13px; margin-top: 8px; min-height: 20px; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .flex-end { display: flex; justify-content: flex-end; }
+    .flex { display: flex; align-items: center; gap: 12px; }
+    .ml-auto { margin-left: auto; }
+    .mt-2 { margin-top: 8px; }
+    .token-display { word-break: break-all; font-size: 11px; color: var(--muted); background: var(--surface2); border-radius: 6px; padding: 8px; margin-top: 8px; max-height: 60px; overflow: hidden; }
+  </style>
+</head>
+<body>
+
+<!-- ── Login Overlay ── -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">SynthX</div>
+    <div class="login-sub">Contract Intelligence Platform — Dev Dashboard</div>
+    <div class="form-group">
+      <label>Email</label>
+      <input id="login-email" type="email" value="admin@synthx.dev" placeholder="admin@synthx.dev" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input id="login-password" type="password" value="Admin@123" placeholder="••••••••" />
+    </div>
+    <div class="form-group">
+      <label>API Base URL</label>
+      <input id="api-base" type="text" value="http://localhost:8000" />
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="doLogin()" id="login-btn">
+      Sign In →
+    </button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<!-- ── Sidebar ── -->
+<div id="sidebar">
+  <div class="logo">SynthX <span>Dev Dashboard</span></div>
+  <nav>
+    <div class="nav-item active" onclick="showPage('overview')" id="nav-overview">
+      <span class="nav-icon">⬡</span> Overview
+    </div>
+    <div class="nav-item" onclick="showPage('contracts')" id="nav-contracts">
+      <span class="nav-icon">📄</span> Contracts
+    </div>
+    <div class="nav-item" onclick="showPage('upload')" id="nav-upload">
+      <span class="nav-icon">⬆</span> Upload
+    </div>
+    <div class="nav-item" onclick="showPage('api')" id="nav-api">
+      <span class="nav-icon">⚡</span> API Explorer
+    </div>
+    <div class="nav-item" onclick="showPage('health')" id="nav-health">
+      <span class="nav-icon">♥</span> Health
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div id="auth-status">
+      <div class="dot" id="auth-dot"></div>
+      <span id="auth-label">Not authenticated</span>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn btn-ghost" style="width:100%;font-size:12px;padding:6px 12px;justify-content:center" onclick="logout()">Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div id="main">
+
+  <!-- Overview -->
+  <div id="page-overview" class="page active">
+    <div class="page-header">
+      <h1>Overview</h1>
+      <p>System status and quick stats</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">API Status</div>
+        <div class="stat-value green" id="stat-api">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Cases</div>
+        <div class="stat-value purple" id="stat-cases">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value" id="stat-progress" style="color:var(--warn)">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value green" id="stat-done">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Your Session</div>
+      <div class="form-row">
+        <div>
+          <label>Logged in as</label>
+          <input readonly id="session-email" value="—" />
+        </div>
+        <div>
+          <label>Roles</label>
+          <input readonly id="session-roles" value="—" />
+        </div>
+      </div>
+      <label>Access Token (truncated)</label>
+      <div class="token-display" id="token-preview">—</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recent Cases</div>
+      <div id="overview-cases">
+        <div style="color:var(--muted);font-size:13px">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contracts -->
+  <div id="page-contracts" class="page">
+    <div class="page-header">
+      <h1>Contracts</h1>
+      <p>All contract cases in the system</p>
+    </div>
+    <div class="card">
+      <div class="flex" style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:0">Case List</div>
+        <button class="btn btn-ghost ml-auto" onclick="loadContracts()">↻ Refresh</button>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="filterCases(null, this)">All</div>
+        <div class="tab" onclick="filterCases('in_progress', this)">In Progress</div>
+        <div class="tab" onclick="filterCases('complete', this)">Complete</div>
+        <div class="tab" onclick="filterCases('failed', this)">Failed</div>
+      </div>
+
+      <div id="contracts-table">
+        <div style="color:var(--muted);font-size:13px">Click Refresh to load cases.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div id="page-upload" class="page">
+    <div class="page-header">
+      <h1>Upload Contract</h1>
+      <p>Submit a new contract for AI analysis</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Primary Contract</div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <div class="drop-zone-icon">📄</div>
+        <div class="drop-zone-text">
+          <strong>Click to browse</strong> or drag & drop<br>
+          PDF, DOCX, TXT
+        </div>
+        <div id="file-name" style="margin-top:8px;color:var(--accent);font-size:13px;font-weight:600"></div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,.docx,.txt" style="display:none" onchange="setFile(this.files[0])" />
+
+      <div class="form-group">
+        <label>Comparison File (optional)</label>
+        <input type="file" id="comparison-input" accept=".pdf,.docx,.txt" style="padding:8px" />
+      </div>
+
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="upload-notes" rows="3" placeholder="Any context or review notes…"></textarea>
+      </div>
+
+      <button class="btn btn-success" id="upload-btn" onclick="uploadContract()" disabled>
+        ⬆ Upload & Analyse
+      </button>
+
+      <div class="response-box empty" id="upload-response">Response will appear here…</div>
+    </div>
+  </div>
+
+  <!-- API Explorer -->
+  <div id="page-api" class="page">
+    <div class="page-header">
+      <h1>API Explorer</h1>
+      <p>Fire raw requests against the backend</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Request</div>
+      <div class="form-row">
+        <div>
+          <label>Method</label>
+          <select id="req-method">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+          </select>
+        </div>
+        <div>
+          <label>Path</label>
+          <input id="req-path" value="/contracts" placeholder="/contracts" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Body (JSON)</label>
+        <textarea id="req-body" rows="5" placeholder='{"key": "value"}'></textarea>
+      </div>
+      <div class="flex">
+        <button class="btn btn-primary" onclick="fireRequest()">Send →</button>
+        <div id="req-status" style="font-size:13px;color:var(--muted)"></div>
+      </div>
+      <div class="response-box empty" id="req-response">Response will appear here…</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Quick Actions</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn btn-ghost" onclick="quick('GET','/health')">GET /health</button>
+        <button class="btn btn-ghost" onclick="quick('GET','/contracts')">GET /contracts</button>
+        <button class="btn btn-ghost" onclick="quick('GET','/internal/policies')">GET /internal/policies</button>
+        <button class="btn btn-ghost" onclick="quick('GET','/audit')">GET /audit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Health -->
+  <div id="page-health" class="page">
+    <div class="page-header">
+      <h1>System Health</h1>
+      <p>Container and service status</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Services</div>
+      <div class="health-grid">
+        <div class="health-item">
+          <div class="health-dot checking" id="h-api"></div>
+          <div>
+            <div class="health-label">Backend API</div>
+            <div class="health-sub" id="h-api-sub">Checking…</div>
+          </div>
+        </div>
+        <div class="health-item">
+          <div class="health-dot checking" id="h-db"></div>
+          <div>
+            <div class="health-label">PostgreSQL</div>
+            <div class="health-sub" id="h-db-sub">Checking…</div>
+          </div>
+        </div>
+        <div class="health-item">
+          <div class="health-dot checking" id="h-redis"></div>
+          <div>
+            <div class="health-label">Redis</div>
+            <div class="health-sub" id="h-redis-sub">Checking…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Raw /health response</div>
+      <button class="btn btn-ghost mt-2" onclick="checkHealth()">↻ Ping</button>
+      <div class="response-box empty" id="health-response">Click Ping…</div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div id="toast-container"></div>
+
+<script>
+  const API_KEY = 'synthx_dev_token';
+  let token = localStorage.getItem(API_KEY) || '';
+  let userEmail = '';
+  let userRoles = [];
+  let allCases = [];
+
+  // ── Utils ──────────────────────────────────────────────────────────────────
+  function base() { return document.getElementById('api-base').value.replace(/\/$/, ''); }
+
+  function toast(msg, type = 'success') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  async function api(method, path, body) {
+    const opts = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(base() + path, opts);
+    const text = await r.text();
+    try { return { ok: r.ok, status: r.status, data: JSON.parse(text) }; }
+    catch { return { ok: r.ok, status: r.status, data: text }; }
+  }
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  async function doLogin() {
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    err.textContent = '';
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const r = await api('POST', '/auth/login', { email, password });
+    if (r.ok) {
+      token = r.data.access_token;
+      userEmail = email;
+      userRoles = r.data.roles || [];
+      localStorage.setItem(API_KEY, token);
+      document.getElementById('login-overlay').style.display = 'none';
+      initDashboard();
+      toast('Signed in as ' + email);
+    } else {
+      err.textContent = '✗ ' + (r.data?.detail || 'Invalid credentials');
+      btn.disabled = false; btn.textContent = 'Sign In →';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem(API_KEY);
+    token = ''; userEmail = ''; userRoles = [];
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('auth-dot').className = 'dot';
+    document.getElementById('auth-label').textContent = 'Not authenticated';
+    document.getElementById('login-error').textContent = '';
+    document.getElementById('login-btn').disabled = false;
+    document.getElementById('login-btn').textContent = 'Sign In →';
+  }
+
+  function initDashboard() {
+    document.getElementById('auth-dot').className = 'dot green';
+    document.getElementById('auth-label').textContent = userEmail;
+    document.getElementById('session-email').value = userEmail;
+    document.getElementById('session-roles').value = userRoles.join(', ') || 'none';
+    document.getElementById('token-preview').textContent = token.substring(0, 80) + '…';
+    loadOverview();
+    checkHealth();
+  }
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.getElementById('nav-' + name).classList.add('active');
+    if (name === 'contracts') loadContracts();
+    if (name === 'health') checkHealth();
+  }
+
+  // ── Overview ───────────────────────────────────────────────────────────────
+  async function loadOverview() {
+    const r = await api('GET', '/health');
+    document.getElementById('stat-api').textContent = r.ok ? 'Online' : 'Error';
+
+    const cr = await api('GET', '/contracts');
+    if (cr.ok && Array.isArray(cr.data)) {
+      allCases = cr.data;
+      document.getElementById('stat-cases').textContent = cr.data.length;
+      document.getElementById('stat-progress').textContent = cr.data.filter(c => c.status === 'in_progress').length;
+      document.getElementById('stat-done').textContent = cr.data.filter(c => c.status === 'complete').length;
+      renderOverviewCases(cr.data.slice(0, 5));
+    } else {
+      document.getElementById('stat-cases').textContent = 'N/A';
+      document.getElementById('overview-cases').innerHTML = `<div style="color:var(--muted);font-size:13px">No data or insufficient permissions.</div>`;
+    }
+  }
+
+  function renderOverviewCases(cases) {
+    if (!cases.length) {
+      document.getElementById('overview-cases').innerHTML = `<div style="color:var(--muted);font-size:13px">No cases yet. Upload a contract to get started.</div>`;
+      return;
+    }
+    document.getElementById('overview-cases').innerHTML = `
+      <table>
+        <thead><tr><th>Case ID</th><th>Status</th><th>Stage</th><th>Risk</th><th>Created</th></tr></thead>
+        <tbody>${cases.map(c => `
+          <tr>
+            <td style="font-family:monospace;font-size:11px">${c.caseId}</td>
+            <td>${statusBadge(c.status)}</td>
+            <td style="color:var(--muted);font-size:12px">${c.currentStage || '—'}</td>
+            <td>${c.riskScore != null ? `<span class="badge ${c.riskScore > 70 ? 'badge-red' : 'badge-yellow'}">${c.riskScore}</span>` : '—'}</td>
+            <td style="color:var(--muted);font-size:12px">${c.createdAt ? new Date(c.createdAt).toLocaleString() : '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  // ── Contracts ──────────────────────────────────────────────────────────────
+  async function loadContracts() {
+    document.getElementById('contracts-table').innerHTML = '<div style="color:var(--muted);font-size:13px">Loading…</div>';
+    const r = await api('GET', '/contracts');
+    if (r.ok && Array.isArray(r.data)) {
+      allCases = r.data;
+      renderContractsTable(r.data);
+    } else {
+      document.getElementById('contracts-table').innerHTML = `<div class="response-box error">${JSON.stringify(r.data, null, 2)}</div>`;
+    }
+  }
+
+  function filterCases(status, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    const filtered = status ? allCases.filter(c => c.status === status) : allCases;
+    renderContractsTable(filtered);
+  }
+
+  function renderContractsTable(cases) {
+    if (!cases.length) {
+      document.getElementById('contracts-table').innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px 0">No cases found.</div>`;
+      return;
+    }
+    document.getElementById('contracts-table').innerHTML = `
+      <table>
+        <thead><tr><th>Case ID</th><th>Status</th><th>Stage</th><th>Risk Score</th><th>Created</th><th></th></tr></thead>
+        <tbody>${cases.map(c => `
+          <tr>
+            <td style="font-family:monospace;font-size:11px">${c.caseId}</td>
+            <td>${statusBadge(c.status)}</td>
+            <td style="color:var(--muted);font-size:12px">${c.currentStage || '—'}</td>
+            <td>${c.riskScore != null ? `<span class="badge ${c.riskScore > 70 ? 'badge-red' : 'badge-yellow'}">${c.riskScore}</span>` : '—'}</td>
+            <td style="color:var(--muted);font-size:12px">${c.createdAt ? new Date(c.createdAt).toLocaleString() : '—'}</td>
+            <td><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="getCaseStatus('${c.caseId}')">Status</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  async function getCaseStatus(id) {
+    showPage('api');
+    document.getElementById('req-method').value = 'GET';
+    document.getElementById('req-path').value = `/contracts/${id}/status`;
+    await fireRequest();
+  }
+
+  function statusBadge(s) {
+    const map = { in_progress: 'badge-yellow', complete: 'badge-green', failed: 'badge-red' };
+    return `<span class="badge ${map[s] || 'badge-purple'}">${s || '—'}</span>`;
+  }
+
+  // ── Upload ─────────────────────────────────────────────────────────────────
+  let selectedFile = null;
+
+  function setFile(f) {
+    selectedFile = f;
+    document.getElementById('file-name').textContent = f ? `✓ ${f.name}` : '';
+    document.getElementById('upload-btn').disabled = !f;
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) setFile(f);
+  }
+
+  async function uploadContract() {
+    if (!selectedFile) return;
+    const btn = document.getElementById('upload-btn');
+    btn.disabled = true; btn.textContent = 'Uploading…';
+    const box = document.getElementById('upload-response');
+    box.className = 'response-box';
+    box.textContent = 'Sending…';
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    const compFile = document.getElementById('comparison-input').files[0];
+    if (compFile) fd.append('comparison_file', compFile);
+    const notes = document.getElementById('upload-notes').value;
+    if (notes) fd.append('notes', notes);
+
+    try {
+      const r = await fetch(base() + '/contracts', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await r.json();
+      box.className = r.ok ? 'response-box' : 'response-box error';
+      box.textContent = JSON.stringify(data, null, 2);
+      if (r.ok) {
+        toast('Contract uploaded! Case: ' + data.caseId);
+        loadOverview();
+      }
+    } catch (e) {
+      box.className = 'response-box error';
+      box.textContent = e.message;
+    }
+
+    btn.disabled = false; btn.textContent = '⬆ Upload & Analyse';
+  }
+
+  // ── API Explorer ───────────────────────────────────────────────────────────
+  async function fireRequest() {
+    const method = document.getElementById('req-method').value;
+    const path = document.getElementById('req-path').value;
+    const bodyRaw = document.getElementById('req-body').value.trim();
+    const box = document.getElementById('req-response');
+    const status = document.getElementById('req-status');
+
+    box.className = 'response-box';
+    box.textContent = 'Loading…';
+    status.textContent = '';
+
+    let body;
+    if (bodyRaw) {
+      try { body = JSON.parse(bodyRaw); }
+      catch { box.className = 'response-box error'; box.textContent = 'Invalid JSON body'; return; }
+    }
+
+    const t0 = Date.now();
+    const r = await api(method, path, body);
+    const ms = Date.now() - t0;
+
+    status.textContent = `${r.status} · ${ms}ms`;
+    box.className = r.ok ? 'response-box' : 'response-box error';
+    box.textContent = JSON.stringify(r.data, null, 2);
+  }
+
+  function quick(m, p) {
+    document.getElementById('req-method').value = m;
+    document.getElementById('req-path').value = p;
+    document.getElementById('req-body').value = '';
+    showPage('api');
+    fireRequest();
+  }
+
+  // ── Health ─────────────────────────────────────────────────────────────────
+  async function checkHealth() {
+    const box = document.getElementById('health-response');
+    box.className = 'response-box';
+
+    // API
+    try {
+      const r = await api('GET', '/health');
+      setHealth('h-api', r.ok, r.ok ? 'Responding' : `HTTP ${r.status}`);
+      box.textContent = JSON.stringify(r.data, null, 2);
+
+      if (r.ok && r.data) {
+        setHealth('h-db', r.data.db !== false, r.data.db || 'connected');
+        setHealth('h-redis', r.data.redis !== false, r.data.redis || 'connected');
+      }
+    } catch (e) {
+      setHealth('h-api', false, e.message);
+      box.className = 'response-box error';
+      box.textContent = e.message;
+    }
+  }
+
+  function setHealth(id, ok, sub) {
+    document.getElementById(id).className = 'health-dot ' + (ok ? 'ok' : 'fail');
+    document.getElementById(id + '-sub').textContent = sub;
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  // Auto-detect API base from page origin (works from nginx at localhost:5000 or file://)
+  const origin = window.location.origin;
+  if (origin && origin !== 'null') {
+    // Served from nginx — proxy handles /auth, /contracts, etc.
+    document.getElementById('api-base').value = origin;
+  }
+  // else keep default http://localhost:8000 for file:// access
+
+  // Auto-login: hide overlay IMMEDIATELY if we have a stored token,
+  // then validate in background and restore login screen only if invalid.
+  if (token) {
+    document.getElementById('login-overlay').style.display = 'none';
+    userEmail = 'Restoring session…';
+    initDashboard();
+    api('GET', '/contracts').then(r => {
+      if (r.status === 401 || r.status === 403) {
+        // Token expired — show login again
+        localStorage.removeItem(API_KEY);
+        token = '';
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('login-error').textContent = 'Session expired — please sign in again.';
+      }
+    }).catch(() => {
+      // Network error — still show dashboard, user can retry
+    });
+  }
+</script>
+</body>
+</html>
