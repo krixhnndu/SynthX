@@ -3,6 +3,7 @@ __pycache__/
 .env
 env
 venv/
+.venv/
 data/
 node_modules/
 dist/
