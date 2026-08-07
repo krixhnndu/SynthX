@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.core.audit import record as audit_record
@@ -15,8 +15,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.email == body.email)).scalars().first()
+    email_clean = (body.email or "").strip().lower()
+    user = db.execute(select(User).where(func.lower(User.email) == email_clean)).scalars().first()
     if not user or not user.password_hash or not verify_password(body.password, user.password_hash):
+        print(f"FAILED LOGIN ATTEMPT: Email received='{body.email}', Cleaned='{email_clean}'")
+        print(f"FAILED LOGIN ATTEMPT: Password received='{body.password}' (length: {len(body.password)})")
+        print(f"FAILED LOGIN ATTEMPT: User exists={user is not None}, Hash exists={user.password_hash is not None if user else False}")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid credentials")
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "account disabled")
