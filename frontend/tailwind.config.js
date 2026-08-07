@@ -1,24 +1,24 @@
-/** SynthX — institutional dark theme.
- *  Chrome is achromatic. Colour is reserved for risk, state and decision. */
+/** SynthX — lighter neutral theme.
+ *  Canvas and surfaces are soft; colour is reserved for risk, state and decision. */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
-        paper: "#0a0c10",     // canvas
-        surface: "#10141a",   // panel
-        raised: "#161b23",    // hover / nested
-        rule: "#1e242c",      // hairline
-        ruleHi: "#2a323c",    // structural divider
-        ink: "#e9e6df",       // primary text (warm bone)
-        muted: "#8b929b",     // secondary text
-        faint: "#59606a",     // tertiary / disabled
+        paper: "#f8fafc",     // canvas
+        surface: "#ffffff",   // panel
+        raised: "#eef2f7",    // hover / nested
+        rule: "#d6d9e1",      // hairline
+        ruleHi: "#c2c8d2",    // structural divider
+        ink: "#111827",       // primary text
+        muted: "#475569",     // secondary text
+        faint: "#64748b",     // tertiary / disabled
         severity: {
           critical: "#b4382f",
           high: "#c0662e",
           medium: "#bd8f2b",
           low: "#4e8a5f",
-          info: "#4a7da6",
+          info: "#3b82f6",
         },
       },
       fontFamily: {
