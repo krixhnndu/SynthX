@@ -1,11 +1,17 @@
+# syntax=docker/dockerfile:1.7
 # ─── Stage 1: build ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Copy manifests first — npm install layer only reruns when these change
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps
 
+# npm cache mount: downloaded packages are reused across builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --legacy-peer-deps
+
+# Copy source last — only this layer rebuilds on code changes
 COPY . .
 RUN npm run build
 
