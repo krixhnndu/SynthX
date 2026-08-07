@@ -24,8 +24,12 @@ def _make_node(stage_number: int):
         failed = list(state.get("failed_stages", []))
         if result["status"] == "failed":
             failed.append(stage_number)
+        # A failed or blocked stage must stop the pipeline: forwarding to the next
+        # stage would run its agents on partial data. finalise_pipeline lands the
+        # case in awaiting_review either way, so a blocked case is still reviewed.
+        halted = result["status"] in ("failed", "blocked")
         return {**state, "stage": stage_number, "failed_stages": failed,
-                "halted": result["status"] == "failed"}
+                "halted": halted}
     return node
 
 
@@ -44,8 +48,8 @@ def build_graph():
         nxt = END if is_last else f"stage_{pipeline_stages[index + 1].number}"
 
         def _route(state: PipelineState, _next=nxt):
-            # A failed branch halts the pipeline; the Supervisor flags the case for
-            # human review rather than completing on partial data (section 7).
+            # A failed or blocked branch halts the pipeline; the Supervisor flags the
+            # case for human review rather than completing on partial data (section 7).
             return END if state.get("halted") else _next
 
         graph.add_conditional_edges(current, _route)

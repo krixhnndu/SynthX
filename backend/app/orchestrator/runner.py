@@ -11,11 +11,12 @@ from typing import Any
 
 from sqlalchemy import select
 
-from app.agents.base import AgentInput
+from app.agents.base import AgentInput, AgentOutput
 from app.agents.registry import get_agent
 from app.config import settings
 from app.core.audit import record as audit_record
 from app.core.locking import write_namespace
+from app.core.versioning import record_version
 from app.db.models import AgentRun, ContractCase
 from app.db.session import SessionLocal
 from app.orchestrator.events import publish
@@ -24,6 +25,10 @@ from app.orchestrator.graph_config import (
 )
 
 log = logging.getLogger(__name__)
+
+# The database helpers below are synchronous on purpose. The stage runner is async
+# and Stage 3/4 dispatch several agents under asyncio.gather, so each helper is
+# invoked through asyncio.to_thread to keep SQLite I/O off the event loop.
 
 
 def _snapshot(case_id: str) -> dict[str, Any]:
@@ -59,52 +64,140 @@ def _set_run(case_id: str, agent_name: str, stage: int, **fields) -> None:
         db.close()
 
 
+def _persist_output(case_id: str, agent_name: str, output: AgentOutput) -> None:
+    """Persist one agent's output. Runs on a worker thread.
+
+    Only the compare-and-swap write is retried here (write_namespace already loops
+    internally and raises WriteConflict when a parallel agent won the race). The
+    expensive LLM generation that produced `output` must never be repeated just
+    because the database write contended.
+    """
+    db = SessionLocal()
+    try:
+        write_namespace(db, case_id, agent_name, output.namespace, output.data)
+    finally:
+        db.close()
+
+
+def _record_stage_start(case_id: str, stage: int, agents: list[str]) -> None:
+    db = SessionLocal()
+    try:
+        audit_record(db, actor="Workflow Orchestrator", action="stage_started",
+                     case_id=case_id, meta={"stage": stage, "agents": agents})
+        case = db.get(ContractCase, case_id)
+        if case is not None:
+            case.current_stage = stage
+            db.commit()
+    finally:
+        db.close()
+
+
+def _record_stage_result(case_id: str, stage: int, status: str,
+                         results: list[dict[str, Any]]) -> None:
+    """Audit a finished stage and, on failure, escalate the case for human review.
+
+    The escalation mutates contract_cases.payload, so it is itself a write: the
+    version counter is bumped and a snapshot recorded, or the optimistic-lock
+    sequence desyncs from the version history (issue 1).
+    """
+    db = SessionLocal()
+    try:
+        audit_record(db, actor="Workflow Orchestrator", action="stage_completed",
+                     case_id=case_id, meta={"stage": stage, "status": status,
+                                            "results": results})
+        if status != "failed":
+            return
+        case = db.get(ContractCase, case_id)
+        if case is None:
+            return
+        failed = [r for r in results if r["status"] == "failed"]
+        case.status = "awaiting_review"
+        payload = dict(case.payload or {})
+        consensus = dict(payload.get("consensus") or {})
+        reasons = list(consensus.get("escalationReasons") or [])
+        reasons.append(f"agent failure in stage {stage}: "
+                       f"{', '.join(f['agent'] for f in failed)}")
+        consensus["escalationReasons"] = reasons
+        payload["consensus"] = consensus
+        case.payload = payload
+        case.version += 1
+        new_version = case.version
+        db.commit()
+        record_version(db, case_id, new_version, payload, source="orchestrator:escalation")
+    finally:
+        db.close()
+
+
+def _finalise_pipeline(case_id: str) -> None:
+    """After Stage 7 the case blocks at Stage 8 until a reviewer decides."""
+    db = SessionLocal()
+    try:
+        case = db.get(ContractCase, case_id)
+        if case is not None and case.status == "in_progress":
+            case.status = "awaiting_review"
+            case.current_stage = 8
+            db.commit()
+        audit_record(db, actor="Workflow Orchestrator", action="stage_started",
+                     case_id=case_id, meta={"stage": 8, "agents": []})
+    finally:
+        db.close()
+
+
 async def _run_agent(case_id: str, agent_name: str, stage: int) -> dict[str, Any]:
-    snapshot = _snapshot(case_id)
+    snapshot = await asyncio.to_thread(_snapshot, case_id)
 
     if _should_skip(agent_name, snapshot):
-        _set_run(case_id, agent_name, stage, status="skipped",
-                 completed_at=datetime.now(timezone.utc))
-        await publish(case_id, {"type": "agent_status", "agent": agent_name, "status": "skipped"})
+        await asyncio.to_thread(_set_run, case_id, agent_name, stage, status="skipped",
+                                completed_at=datetime.now(timezone.utc))
+        await publish(case_id, {"type": "agent_status", "agent": agent_name,
+                                "status": "skipped"})
         return {"agent": agent_name, "status": "skipped"}
 
     agent = get_agent(agent_name)
     task_payload = snapshot.get("_taskPayload", {}).get(agent_name, {})
 
+    # Generation and persistence have separate retry budgets. Once the LLM call
+    # succeeds, a WriteConflict (or any other persistence failure) re-attempts only
+    # the database write with the already-generated output - never agent.run again.
     last_error: Exception | None = None
+    output: AgentOutput | None = None
     for attempt in range(1, settings.node_max_retries + 1):
-        _set_run(case_id, agent_name, stage, status="running", attempt=attempt,
-                 started_at=datetime.now(timezone.utc), error=None)
+        await asyncio.to_thread(
+            _set_run, case_id, agent_name, stage, status="running", attempt=attempt,
+            started_at=datetime.now(timezone.utc), error=None,
+        )
         await publish(case_id, {"type": "agent_status", "agent": agent_name,
                                 "status": "running", "attempt": attempt})
         try:
-            output = await agent.run(
-                AgentInput(caseId=case_id, contractCaseSnapshot=snapshot, taskPayload=task_payload)
-            )
-            db = SessionLocal()
-            try:
-                write_namespace(db, case_id, agent_name, output.namespace, output.data)
-            finally:
-                db.close()
-
-            _set_run(case_id, agent_name, stage, status="completed",
-                     completed_at=datetime.now(timezone.utc),
-                     confidence_score=output.confidence)
-            await publish(case_id, {"type": "agent_status", "agent": agent_name,
-                                    "status": "completed", "confidence": output.confidence})
-            return {"agent": agent_name, "status": "completed"}
-
+            if output is None:
+                output = await agent.run(
+                    AgentInput(caseId=case_id, contractCaseSnapshot=snapshot,
+                               taskPayload=task_payload)
+                )
+            await asyncio.to_thread(_persist_output, case_id, agent_name, output)
+            break
         except Exception as exc:
             last_error = exc
             log.warning("agent %s failed (attempt %s): %s", agent_name, attempt, exc)
             if attempt < settings.node_max_retries:
                 await asyncio.sleep(settings.node_backoff_base_seconds ** attempt)
 
-    _set_run(case_id, agent_name, stage, status="failed",
-             completed_at=datetime.now(timezone.utc), error=str(last_error)[:2000])
+    if last_error is not None:
+        await asyncio.to_thread(
+            _set_run, case_id, agent_name, stage, status="failed",
+            completed_at=datetime.now(timezone.utc), error=str(last_error)[:2000],
+        )
+        await publish(case_id, {"type": "agent_status", "agent": agent_name,
+                                "status": "failed", "error": str(last_error)[:500]})
+        return {"agent": agent_name, "status": "failed", "error": str(last_error)}
+
+    await asyncio.to_thread(
+        _set_run, case_id, agent_name, stage, status="completed",
+        completed_at=datetime.now(timezone.utc), confidence_score=output.confidence,
+    )
     await publish(case_id, {"type": "agent_status", "agent": agent_name,
-                            "status": "failed", "error": str(last_error)[:500]})
-    return {"agent": agent_name, "status": "failed", "error": str(last_error)}
+                            "status": "completed", "confidence": output.confidence})
+    return {"agent": agent_name, "status": "completed"}
 
 
 def _dependencies_satisfied(case_id: str, stage: int) -> bool:
@@ -131,18 +224,10 @@ def _dependencies_satisfied(case_id: str, stage: int) -> bool:
 async def run_stage(case_id: str, stage: int) -> dict[str, Any]:
     spec = STAGE_BY_NUMBER[stage]
 
-    if not _dependencies_satisfied(case_id, stage):
+    if not await asyncio.to_thread(_dependencies_satisfied, case_id, stage):
         return {"stage": stage, "status": "blocked"}
 
-    db = SessionLocal()
-    try:
-        audit_record(db, actor="Workflow Orchestrator", action="stage_started", case_id=case_id,
-                     meta={"stage": stage, "agents": list(spec.agents)})
-        case = db.get(ContractCase, case_id)
-        case.current_stage = stage
-        db.commit()
-    finally:
-        db.close()
+    await asyncio.to_thread(_record_stage_start, case_id, stage, list(spec.agents))
 
     await publish(case_id, {"type": "stage", "stage": stage, "name": spec.name,
                             "status": "started"})
@@ -157,40 +242,12 @@ async def run_stage(case_id: str, stage: int) -> dict[str, Any]:
     failed = [r for r in results if r["status"] == "failed"]
     status = "failed" if failed else "completed"
 
-    db = SessionLocal()
-    try:
-        audit_record(db, actor="Workflow Orchestrator", action="stage_completed", case_id=case_id,
-                     meta={"stage": stage, "status": status, "results": results})
-        if failed:
-            case = db.get(ContractCase, case_id)
-            case.status = "awaiting_review"
-            payload = dict(case.payload or {})
-            consensus = dict(payload.get("consensus") or {})
-            reasons = list(consensus.get("escalationReasons") or [])
-            reasons.append(f"agent failure in stage {stage}: "
-                           f"{', '.join(f['agent'] for f in failed)}")
-            consensus["escalationReasons"] = reasons
-            payload["consensus"] = consensus
-            case.payload = payload
-            db.commit()
-    finally:
-        db.close()
+    await asyncio.to_thread(_record_stage_result, case_id, stage, status, results)
 
     await publish(case_id, {"type": "stage", "stage": stage, "status": status})
     return {"stage": stage, "status": status, "results": results}
 
 
 async def finalise_pipeline(case_id: str) -> None:
-    """After Stage 7 the case blocks at Stage 8 until a reviewer decides."""
-    db = SessionLocal()
-    try:
-        case = db.get(ContractCase, case_id)
-        if case.status == "in_progress":
-            case.status = "awaiting_review"
-            case.current_stage = 8
-            db.commit()
-        audit_record(db, actor="Workflow Orchestrator", action="stage_started", case_id=case_id,
-                     meta={"stage": 8, "agents": []})
-    finally:
-        db.close()
+    await asyncio.to_thread(_finalise_pipeline, case_id)
     await publish(case_id, {"type": "stage", "stage": 8, "status": "awaiting_review"})
