@@ -4,7 +4,7 @@ Run once: python -m app.seed
 The bootstrap admin password comes from BOOTSTRAP_ADMIN_PASSWORD and must be rotated
 after first login (docs/OPEN_DECISIONS.md, gap 4).
 """
-import os
+from app.config import settings
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -84,12 +84,12 @@ def main() -> None:
             if exists is None:
                 db.add(Policy(role=role, resource=resource, action=action, condition=condition))
 
-        email = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "admin@example.com")
+        email = settings.bootstrap_admin_email
         admin = db.execute(select(User).where(User.email == email)).scalars().first()
         if admin is None:
             admin = User(
                 name="Bootstrap Admin", email=email,
-                password_hash=hash_password(os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "changeme123")),
+                password_hash=hash_password(settings.bootstrap_admin_password),
             )
             db.add(admin)
             db.flush()
