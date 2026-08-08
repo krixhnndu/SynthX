@@ -29,7 +29,7 @@ export function LandingNav() {
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
         <a href="#top" className="flex items-baseline gap-2">
           <span className="font-mono text-sm font-medium tracking-[0.34em] text-sx-foreground">
-            SYNTHX
+            CLAUSEPILOT
           </span>
           <span className="hidden sx-label-mono sm:inline">Legal Intelligence</span>
         </a>

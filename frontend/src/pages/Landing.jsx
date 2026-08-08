@@ -11,7 +11,7 @@ import { SceneDecision } from "../components/landing/SceneDecision";
 import { SceneAudit } from "../components/landing/SceneAudit";
 import { SceneFinal, LandingFooter } from "../components/landing/SceneFinal";
 
-const TITLE = "SynthX — Contract Intelligence for High-Stakes Decisions";
+const TITLE = "ClausePilot — Contract Intelligence for High-Stakes Decisions";
 const DESCRIPTION =
   "AI-powered contract intelligence and controlled approval workflows: read every clause, map the risk, and keep the final decision human.";
 
@@ -83,7 +83,7 @@ export default function Landing() {
               data-cursor="enter"
               className="group inline-flex items-center gap-3 bg-sx-foreground px-7 py-3.5 font-mono text-xs uppercase tracking-[0.22em] text-sx-primary-foreground transition-colors hover:bg-sx-crimson"
             >
-              Enter SynthX
+              Enter ClausePilot
               <span className="transition-transform duration-300 group-hover:translate-x-1.5">→</span>
             </a>
             <a
