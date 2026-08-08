@@ -1,0 +1,212 @@
+/*
+ * SynthX marketing landing page — warm "case file" design system.
+ *
+ * Everything here is scoped under .sx-landing so it can never affect the
+ * existing dashboard/app screens. Color tokens are consumed by Tailwind
+ * via the `sx-*` keys added in tailwind.config.js (e.g. bg-sx-crimson).
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap");
+
+.sx-landing {
+  --sx-radius: 0.25rem;
+
+  --sx-font-display: "Instrument Serif", "Times New Roman", serif;
+  --sx-font-sans: "Work Sans", system-ui, sans-serif;
+  --sx-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --sx-background: oklch(0.972 0.011 85);
+  --sx-foreground: oklch(0.245 0.012 60);
+  --sx-paper: oklch(0.988 0.007 92);
+  --sx-paper-edge: oklch(0.935 0.014 85);
+
+  --sx-card: oklch(0.988 0.007 92);
+  --sx-card-foreground: oklch(0.245 0.012 60);
+  --sx-popover: oklch(0.994 0.004 92);
+  --sx-popover-foreground: oklch(0.245 0.012 60);
+
+  --sx-primary: oklch(0.245 0.012 60);
+  --sx-primary-foreground: oklch(0.982 0.008 92);
+  --sx-secondary: oklch(0.945 0.012 85);
+  --sx-secondary-foreground: oklch(0.3 0.012 60);
+  --sx-muted: oklch(0.948 0.01 85);
+  --sx-muted-foreground: oklch(0.545 0.014 70);
+  --sx-accent: oklch(0.93 0.017 80);
+  --sx-accent-foreground: oklch(0.28 0.012 60);
+
+  --sx-crimson: oklch(0.44 0.155 22);
+  --sx-crimson-soft: oklch(0.62 0.115 25);
+  --sx-amber: oklch(0.65 0.105 72);
+  --sx-olive: oklch(0.52 0.075 145);
+  --sx-slateblue: oklch(0.5 0.06 255);
+
+  --sx-destructive: oklch(0.44 0.155 22);
+  --sx-destructive-foreground: oklch(0.982 0.008 92);
+
+  --sx-border: oklch(0.9 0.014 84);
+  --sx-rule: oklch(0.845 0.016 82);
+  --sx-input: oklch(0.9 0.014 84);
+  --sx-ring: oklch(0.44 0.155 22);
+
+  --sx-shadow-paper: 0 1px 1px oklch(0.245 0.012 60 / 0.05), 0 8px 24px -12px oklch(0.245 0.012 60 / 0.22);
+  --sx-shadow-lift: 0 2px 3px oklch(0.245 0.012 60 / 0.06), 0 26px 55px -28px oklch(0.245 0.012 60 / 0.35);
+
+  background-color: var(--sx-background);
+  color: var(--sx-foreground);
+  font-family: var(--sx-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.sx-landing ::selection {
+  background: oklch(0.44 0.155 22 / 0.16);
+}
+
+.sx-landing .font-mono {
+  font-family: var(--sx-font-mono);
+}
+
+/* ---------- Surfaces ---------- */
+
+.sx-landing .sx-paper-grain {
+  position: relative;
+  isolation: isolate;
+}
+.sx-landing .sx-paper-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle at 22% 18%, oklch(0.245 0.012 60 / 0.035) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 68% 62%, oklch(0.245 0.012 60 / 0.028) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 44% 84%, oklch(0.245 0.012 60 / 0.03) 0 1px, transparent 1.2px);
+  background-size: 7px 7px, 11px 11px, 13px 13px;
+}
+
+.sx-landing .sx-sheet {
+  background: var(--sx-paper);
+  border: 1px solid var(--sx-paper-edge);
+  box-shadow: var(--sx-shadow-paper);
+}
+
+.sx-landing .sx-sheet-lift {
+  background: var(--sx-paper);
+  border: 1px solid var(--sx-paper-edge);
+  box-shadow: var(--sx-shadow-lift);
+}
+
+.sx-landing .sx-rule-line {
+  border-top: 1px solid var(--sx-rule);
+}
+
+.sx-landing .sx-label-mono {
+  font-family: var(--sx-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sx-muted-foreground);
+}
+
+.sx-landing .sx-display-xl {
+  font-family: var(--sx-font-display);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+}
+
+.sx-landing .sx-stamp {
+  font-family: var(--sx-font-mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--sx-crimson);
+  border: 2px solid oklch(0.44 0.155 22 / 0.55);
+  padding: 0.3rem 0.7rem;
+  transform: rotate(-6deg);
+  opacity: 0.85;
+}
+
+/* ---------- Reveal on scroll ---------- */
+
+.sx-landing .sx-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sx-landing .sx-reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes sx-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sx-underline {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes sx-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sx-stamp-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-16deg) scale(1.5);
+  }
+  60% {
+    opacity: 0.95;
+    transform: rotate(-5deg) scale(0.96);
+  }
+  100% {
+    opacity: 0.85;
+    transform: rotate(-6deg) scale(1);
+  }
+}
+
+.sx-landing .sx-anim-fade-up {
+  animation: sx-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sx-landing .sx-anim-stamp {
+  animation: sx-stamp-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sx-landing .sx-caret {
+  animation: sx-caret 1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-landing *,
+  .sx-landing *::before,
+  .sx-landing *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

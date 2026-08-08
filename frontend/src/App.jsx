@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "./components/shell/AppShell";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import CaseWorkspace from "./pages/CaseWorkspace";
 import AuditTrail from "./pages/AuditTrail";
