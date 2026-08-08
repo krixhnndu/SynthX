@@ -167,11 +167,19 @@ def _finalise_pipeline(case_id: str) -> None:
 async def _run_agent(case_id: str, agent_name: str, stage: int) -> dict[str, Any]:
     existing = await asyncio.to_thread(_existing_run, case_id, agent_name)
     if existing is not None:
+        log.info(
+            "workflow trace case=%s stage=%s agent=%s event=agent_reused status=%s",
+            case_id, stage, agent_name, existing["status"],
+        )
         return existing
 
     snapshot = await asyncio.to_thread(_snapshot, case_id)
 
     if _should_skip(agent_name, snapshot):
+        log.info(
+            "workflow trace case=%s stage=%s agent=%s event=agent_skipped",
+            case_id, stage, agent_name,
+        )
         await asyncio.to_thread(_set_run, case_id, agent_name, stage, status="skipped",
                                 completed_at=datetime.now(timezone.utc))
         await publish(case_id, {"type": "agent_status", "agent": agent_name,
@@ -187,6 +195,10 @@ async def _run_agent(case_id: str, agent_name: str, stage: int) -> dict[str, Any
     last_error: Exception | None = None
     output: AgentOutput | None = None
     for attempt in range(1, settings.node_max_retries + 1):
+        log.info(
+            "workflow trace case=%s stage=%s agent=%s event=agent_attempt_started attempt=%s",
+            case_id, stage, agent_name, attempt,
+        )
         await asyncio.to_thread(
             _set_run, case_id, agent_name, stage, status="running", attempt=attempt,
             started_at=datetime.now(timezone.utc), error=None,
@@ -200,10 +212,19 @@ async def _run_agent(case_id: str, agent_name: str, stage: int) -> dict[str, Any
                                taskPayload=task_payload)
                 )
             await asyncio.to_thread(_persist_output, case_id, agent_name, output)
+            log.info(
+                "workflow trace case=%s stage=%s agent=%s event=agent_output_persisted "
+                "namespace=%s confidence=%s",
+                case_id, stage, agent_name, output.namespace, output.confidence,
+            )
             break
         except Exception as exc:
             last_error = exc
-            log.warning("agent %s failed (attempt %s): %s", agent_name, attempt, exc)
+            log.warning(
+                "workflow trace case=%s stage=%s agent=%s event=agent_attempt_failed "
+                "attempt=%s error=%s",
+                case_id, stage, agent_name, attempt, exc,
+            )
             if attempt < settings.node_max_retries:
                 await asyncio.sleep(settings.node_backoff_base_seconds ** attempt)
 
@@ -218,6 +239,10 @@ async def _run_agent(case_id: str, agent_name: str, stage: int) -> dict[str, Any
         )
         await publish(case_id, {"type": "agent_status", "agent": agent_name,
                                 "status": "failed", "error": str(reason)[:500]})
+        log.info(
+            "workflow trace case=%s stage=%s agent=%s event=agent_failed",
+            case_id, stage, agent_name,
+        )
         return {"agent": agent_name, "status": "failed", "error": str(reason)}
 
     await asyncio.to_thread(
@@ -226,6 +251,10 @@ async def _run_agent(case_id: str, agent_name: str, stage: int) -> dict[str, Any
     )
     await publish(case_id, {"type": "agent_status", "agent": agent_name,
                             "status": "completed", "confidence": output.confidence})
+    log.info(
+        "workflow trace case=%s stage=%s agent=%s event=agent_completed confidence=%s",
+        case_id, stage, agent_name, output.confidence,
+    )
     return {"agent": agent_name, "status": "completed"}
 
 
@@ -254,8 +283,16 @@ async def run_stage(case_id: str, stage: int) -> dict[str, Any]:
     spec = STAGE_BY_NUMBER[stage]
 
     if not await asyncio.to_thread(_dependencies_satisfied, case_id, stage):
+        log.info(
+            "workflow trace case=%s stage=%s event=stage_blocked dependencies=%s",
+            case_id, stage, spec.depends_on,
+        )
         return {"stage": stage, "status": "blocked"}
 
+    log.info(
+        "workflow trace case=%s stage=%s event=stage_started name=%s agents=%s parallel=%s",
+        case_id, stage, spec.name, list(spec.agents), spec.parallel,
+    )
     await asyncio.to_thread(_record_stage_start, case_id, stage, list(spec.agents))
 
     await publish(case_id, {"type": "stage", "stage": stage, "name": spec.name,
@@ -274,9 +311,14 @@ async def run_stage(case_id: str, stage: int) -> dict[str, Any]:
     await asyncio.to_thread(_record_stage_result, case_id, stage, status, results)
 
     await publish(case_id, {"type": "stage", "stage": stage, "status": status})
+    log.info(
+        "workflow trace case=%s stage=%s event=stage_finished status=%s results=%s",
+        case_id, stage, status, results,
+    )
     return {"stage": stage, "status": status, "results": results}
 
 
 async def finalise_pipeline(case_id: str) -> None:
     await asyncio.to_thread(_finalise_pipeline, case_id)
     await publish(case_id, {"type": "stage", "stage": 8, "status": "awaiting_review"})
+    log.info("workflow trace case=%s stage=8 event=human_review_waiting", case_id)

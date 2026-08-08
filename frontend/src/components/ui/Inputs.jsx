@@ -4,7 +4,7 @@ const cx = (...parts) => parts.filter(Boolean).join(" ");
 
 const FIELD =
   "w-full border border-rule bg-paper px-3 py-2 text-sm text-ink placeholder:text-faint " +
-  "transition-colors hover:border-ruleHi focus:border-ink";
+  "transition-colors focus:border-ink";
 
 export function Label({ htmlFor, children, hint }) {
   return (
@@ -59,10 +59,8 @@ export function TabRow({ options, value, onChange, className }) {
             onClick={() => onChange(opt.value)}
             aria-current={active ? "true" : undefined}
             className={cx(
-              "-mb-px border-b py-2 font-mono text-2xs uppercase tracking-label transition-colors",
-              active
-                ? "border-ink text-ink"
-                : "border-transparent text-faint hover:text-muted"
+              "-mb-px border-b py-2 font-mono text-2xs uppercase tracking-label cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5",
+              active ? "border-ink text-ink" : "border-transparent text-faint"
             )}
           >
             {opt.label}

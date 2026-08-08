@@ -27,7 +27,7 @@ export default function TopBar({ onOpenNav }) {
       <button
         onClick={onOpenNav}
         aria-label="Open navigation"
-        className="text-muted transition-colors hover:text-ink lg:hidden"
+        className="text-muted cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5 lg:hidden"
       >
         <IconMenu width={16} height={16} />
       </button>

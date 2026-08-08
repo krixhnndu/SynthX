@@ -29,7 +29,7 @@ export default function AppShell() {
             <button
               onClick={() => setNavOpen(false)}
               aria-label="Close navigation"
-              className="absolute right-3 top-4 z-10 text-muted hover:text-ink"
+              className="absolute right-3 top-4 z-10 text-muted cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5"
             >
               <IconClose width={16} height={16} />
             </button>

@@ -36,9 +36,17 @@ async def upload_contract(
     case_id = str(uuid.uuid4())
     storage = get_storage()
 
+    log.info(
+        "workflow trace case=%s event=upload_received filename=%s user=%s",
+        case_id, file.filename, user.email,
+    )
     data = await file.read()
     source_format = detect_format(data, file.filename)
     file_ref = storage.put(f"contracts/{case_id}/{file.filename}", data, file.content_type)
+    log.info(
+        "workflow trace case=%s event=document_stored source_format=%s comparison=%s",
+        case_id, source_format, isinstance(comparison_file, UploadFile),
+    )
 
     comparison_ref = None
     if isinstance(comparison_file, UploadFile):
@@ -74,12 +82,14 @@ async def upload_contract(
     db.add(contract)
     case.contract_id = contract.id
     db.commit()
+    log.info("workflow trace case=%s event=case_committed version=1", case_id)
 
     record_version(db, case_id, 1, payload, source=f"upload:{user.email}")
 
     audit_record(db, actor=user.email, actor_id=user.id, action="contract_uploaded",
                  case_id=case_id, meta={"filename": file.filename,
                                         "hasComparison": comparison_ref is not None})
+    log.info("workflow trace case=%s event=audit_recorded action=contract_uploaded", case_id)
 
     # Enqueue the pipeline onto Redis. The case and its v1 snapshot are already
     # committed above, so a down Redis must not turn a successful upload into a
@@ -88,6 +98,10 @@ async def upload_contract(
     try:
         pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
         await pool.enqueue_job("run_scope", case_id, user.roles, comparison_ref is not None)
+        log.info(
+            "workflow trace case=%s event=scope_enqueued roles=%s has_comparison=%s",
+            case_id, user.roles, comparison_ref is not None,
+        )
     except Exception as exc:
         log.warning("pipeline enqueue skipped for case %s (Redis unreachable?): %s",
                     case_id, exc)

@@ -44,6 +44,34 @@ services:
       retries: 5
       start_period: 30s
 
+  # ─── Worker (arq pipeline executor) ─────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+      cache_from:
+        - synthx_backend:latest
+    container_name: synthx_worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://synthx:synthx@db:5432/synthx
+      REDIS_URL: redis://redis:6379/0
+      CHROMA_PERSIST_DIR: /app/data/chroma
+      STORAGE_LOCAL_DIR: /app/data/documents
+    volumes:
+      - backend_data:/app/data
+    command: ["arq", "app.workers.tasks.WorkerSettings"]
+    depends_on:
+      backend:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   # ─── Frontend (React + nginx) ─────────────────────────────────────────────────
   frontend:
     build:

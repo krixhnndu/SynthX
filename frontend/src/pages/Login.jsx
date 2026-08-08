@@ -35,7 +35,7 @@ export default function Login() {
       <div className="relative hidden flex-col justify-between border-r border-rule bg-surface p-12 lg:flex">
         <div>
           <div className="font-display text-3xl leading-none tracking-tight text-ink">ClausePilot</div>
-          <Eyebrow className="mt-2">Contract Intelligence &amp; Approval</Eyebrow>
+          <Eyebrow className="mt-2">Navigate Every Clause with Confidence</Eyebrow>
         </div>
 
         <div className="max-w-md">
@@ -59,7 +59,7 @@ export default function Login() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden">
             <div className="font-display text-2xl leading-none text-ink">ClausePilot</div>
-            <Eyebrow className="mt-1.5 mb-8">Contract Intelligence &amp; Approval</Eyebrow>
+            <Eyebrow className="mt-1.5 mb-8">Navigate Every Clause with Confidence</Eyebrow>
           </div>
 
           <h1 className="font-display text-2xl text-ink">Sign in</h1>

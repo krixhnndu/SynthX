@@ -68,7 +68,7 @@ export function ClauseRef({ children, onClick, linked = false, className }) {
     <button
       onClick={onClick}
       className={cx(
-        "font-mono text-2xs text-severity-info underline decoration-severity-info/40 underline-offset-2 transition-colors hover:decoration-severity-info",
+        "font-mono text-2xs text-severity-info underline decoration-severity-info/40 underline-offset-2 cursor-pointer",
         className
       )}
     >

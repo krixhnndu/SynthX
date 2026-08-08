@@ -59,8 +59,8 @@ export default function VersionHistory({ caseId }) {
                 onClick={() => setSelected(v.version)}
                 aria-current={on ? "true" : undefined}
                 className={cx(
-                  "block w-full border-l py-2 pl-3 text-left transition-colors",
-                  on ? "border-ink" : "border-rule hover:border-ruleHi"
+                  "block w-full border-l py-2 pl-3 text-left cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5",
+                  on ? "border-ink" : "border-rule"
                 )}
               >
                 <span className={cx("block font-mono text-xs", on ? "text-ink" : "text-muted")}>

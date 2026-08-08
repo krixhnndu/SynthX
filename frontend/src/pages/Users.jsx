@@ -97,10 +97,8 @@ export default function Users() {
                 }
                 aria-pressed={on}
                 className={cx(
-                  "border px-2 py-0.5 font-mono text-2xs uppercase tracking-label transition-colors",
-                  on
-                    ? "border-ink bg-ink text-paper"
-                    : "border-rule text-faint hover:border-ruleHi hover:text-muted"
+                  "border px-2 py-0.5 font-mono text-2xs uppercase tracking-label cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5",
+                  on ? "border-ink bg-ink text-paper" : "border-rule text-faint"
                 )}
               >
                 {r.name}
@@ -118,10 +116,8 @@ export default function Users() {
         <button
           onClick={() => updateUser.mutate({ id: u.id, body: { isActive: !u.isActive } })}
           className={cx(
-            "border px-2 py-0.5 font-mono text-2xs uppercase tracking-label transition-colors",
-            u.isActive
-              ? "border-severity-low/60 text-severity-low"
-              : "border-rule text-faint hover:text-muted"
+            "border px-2 py-0.5 font-mono text-2xs uppercase tracking-label cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5",
+            u.isActive ? "border-severity-low/60 text-severity-low" : "border-rule text-faint"
           )}
         >
           {u.isActive ? "Active" : "Disabled"}

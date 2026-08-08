@@ -61,7 +61,6 @@ async def call_structured(
     temperature: float = 0.0,
     long_context: bool = False,
 ) -> T:
-    llm = get_llm(temperature=temperature, long_context=long_context)
     schema_hint = json.dumps(output_model.model_json_schema(), indent=2)
     # "matching this schema" is ambiguous to smaller models - llama-3.1-8b was
     # echoing the schema definition itself ($defs, properties) instead of producing
@@ -78,6 +77,7 @@ async def call_structured(
     last_error: Exception | None = None
 
     for transient_attempt in range(settings.llm_max_retries):
+        llm = get_llm(temperature=temperature, long_context=long_context)
         try:
             response = await llm.ainvoke(messages)
         except Exception as exc:  # timeout / network / rate limit

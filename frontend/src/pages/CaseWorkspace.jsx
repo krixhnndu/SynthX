@@ -105,7 +105,7 @@ export default function CaseWorkspace() {
     <div className="mx-auto max-w-7xl">
       <Link
         to="/dashboard"
-        className="font-mono text-2xs uppercase tracking-label text-faint transition-colors hover:text-ink"
+        className="font-mono text-2xs uppercase tracking-label text-faint cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5"
       >
         &larr; All cases
       </Link>
@@ -170,10 +170,8 @@ export default function CaseWorkspace() {
                       onClick={() => setActive(item.key)}
                       aria-current={on ? "true" : undefined}
                       className={cx(
-                        "relative block w-full border-l py-1.5 pl-3 text-left text-sm transition-colors",
-                        on
-                          ? "border-ink text-ink"
-                          : "border-rule text-muted hover:border-ruleHi hover:text-ink"
+                        "relative block w-full border-l py-1.5 pl-3 text-left text-sm cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5",
+                        on ? "border-ink text-ink" : "border-rule text-muted"
                       )}
                     >
                       {item.label}
@@ -183,10 +181,9 @@ export default function CaseWorkspace() {
               </div>
             )
           )}
-
           <Link
             to={`/contracts/${caseId}/audit`}
-            className="block border-l border-rule py-1.5 pl-3 text-sm text-muted transition-colors hover:border-ruleHi hover:text-ink"
+            className="block border-l border-rule py-1.5 pl-3 text-sm text-muted cursor-pointer transform transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0.5"
           >
             Audit trail
           </Link>
