@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -18,6 +19,8 @@ from app.db.models import AgentRun, Contract, ContractCase
 from app.db.session import get_db
 from app.schemas.contract_case import ContractCasePayload
 from app.storage.base import get_storage
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contracts", tags=["contracts"])
 
@@ -78,8 +81,16 @@ async def upload_contract(
                  case_id=case_id, meta={"filename": file.filename,
                                         "hasComparison": comparison_ref is not None})
 
-    pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
-    await pool.enqueue_job("run_scope", case_id, user.roles, comparison_ref is not None)
+    # Enqueue the pipeline onto Redis. The case and its v1 snapshot are already
+    # committed above, so a down Redis must not turn a successful upload into a
+    # 500. Log and continue: the case sits in the DB and the pipeline can be run
+    # once Redis is up (or the whole stack runs in Docker, where Redis is a service).
+    try:
+        pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+        await pool.enqueue_job("run_scope", case_id, user.roles, comparison_ref is not None)
+    except Exception as exc:
+        log.warning("pipeline enqueue skipped for case %s (Redis unreachable?): %s",
+                    case_id, exc)
 
     return {"caseId": case_id, "status": "in_progress"}
 
@@ -149,7 +160,10 @@ def get_report(
     if not report.get("sections"):
         raise HTTPException(status.HTTP_409_CONFLICT, "report not generated yet")
 
-    if download and report.get("renderRef"):
+    if download:
+        if not report.get("renderRef"):
+            raise HTTPException(status.HTTP_409_CONFLICT,
+                                "PDF render not available for this case")
         pdf = get_storage().get(report["renderRef"])
         return Response(
             pdf, media_type="application/pdf",

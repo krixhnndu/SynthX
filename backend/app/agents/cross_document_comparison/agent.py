@@ -4,12 +4,15 @@ Runs only when a prior version or template was supplied at upload. Otherwise the
 orchestrator marks it skipped (not failed) so Stage 4 resolution proceeds.
 """
 import json
+import logging
 
 from app.agents.base import AgentInput, AgentOutput, BaseAgent
 from app.agents.cross_document_comparison.schema import ComparisonOutput
 from app.llm.structured import call_structured
 from app.storage.base import get_storage
 from app.agents.ocr_parsing.extractors import detect_and_extract
+
+log = logging.getLogger(__name__)
 
 
 class CrossDocumentComparisonAgent(BaseAgent):
@@ -28,9 +31,22 @@ class CrossDocumentComparisonAgent(BaseAgent):
             )
 
         prior_bytes = get_storage().get(comparison_ref)
-        _, prior_text, _ = detect_and_extract(
-            prior_bytes, payload.taskPayload.get("comparisonFilename", "prior.pdf")
-        )
+        try:
+            _, prior_text, _ = detect_and_extract(
+                prior_bytes, payload.taskPayload.get("comparisonFilename", "prior.pdf")
+            )
+        except Exception as exc:
+            # Scanned PDFs route through pdf2image, which shells out to poppler's
+            # pdftoppm. On a host without poppler (e.g. a bare Windows venv) that
+            # raises. A prior-version comparison is optional, so degrade to skipped
+            # rather than failing the pipeline - same pattern as the report renderer.
+            log.warning("comparison skipped for case %s (cannot extract prior PDF: %s)",
+                        payload.caseId, exc)
+            return AgentOutput(
+                namespace="comparison",
+                data=ComparisonOutput(skipped=True).model_dump(),
+                confidence=1.0,
+            )
         current = payload.contractCaseSnapshot.get("clauseClassification", {})
 
         result = await call_structured(

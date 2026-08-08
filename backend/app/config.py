@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     # --- Orchestrator ---
     node_max_retries: int = 3
     node_backoff_base_seconds: float = 2.0
+    # Stages 3 & 4 dispatch their agents concurrently by default. On a rate-limited
+    # LLM tier, parallel agents exhaust the per-minute token budget and fail; set
+    # PARALLEL_STAGES=false to run them serially instead (slower, fits the quota).
+    parallel_stages: bool = True
 
     @field_validator("database_url")
     @classmethod
