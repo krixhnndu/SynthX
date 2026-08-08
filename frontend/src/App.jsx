@@ -17,6 +17,7 @@ function Protected({ children }) {
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
 
       {/* Every authenticated route renders inside the shell. */}
