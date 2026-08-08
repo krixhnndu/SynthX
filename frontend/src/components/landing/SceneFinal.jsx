@@ -5,7 +5,7 @@ export function SceneFinal() {
     <section className="sx-paper-grain relative border-t border-sx-rule bg-sx-secondary/50">
       <div className="relative z-10 mx-auto max-w-5xl px-5 py-32 text-center sm:px-8 sm:py-44">
         <Reveal>
-          <span className="sx-label-mono">Synthx · Legal Intelligence</span>
+          <span className="sx-label-mono">ClausePilot · Legal Intelligence</span>
           <h2 className="sx-display-xl mt-8 text-6xl sm:text-8xl">
             See what matters.
             <br />
@@ -20,7 +20,7 @@ export function SceneFinal() {
               data-cursor="enter"
               className="group inline-flex items-center gap-3 bg-sx-foreground px-8 py-4 font-mono text-xs uppercase tracking-[0.24em] text-sx-primary-foreground transition-colors hover:bg-sx-crimson"
             >
-              Enter SynthX
+              Enter ClausePilot
               <span className="transition-transform duration-300 group-hover:translate-x-1.5">→</span>
             </a>
           </div>
@@ -35,7 +35,7 @@ export function LandingFooter() {
     <footer className="border-t border-sx-rule">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div className="flex items-baseline gap-3">
-          <span className="font-mono text-sm tracking-[0.34em]">SYNTHX</span>
+          <span className="font-mono text-sm tracking-[0.34em]">CLAUSEPILOT</span>
           <span className="sx-label-mono">Contract intelligence</span>
         </div>
         <nav className="flex flex-wrap gap-6">

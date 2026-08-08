@@ -1,55 +1,55 @@
 /*
- * SynthX marketing landing page — warm "case file" design system.
+ * SynthX landing page — restyled to match the existing app's neutral design system.
  *
- * Everything here is scoped under .sx-landing so it can never affect the
- * existing dashboard/app screens. Color tokens are consumed by Tailwind
- * via the `sx-*` keys added in tailwind.config.js (e.g. bg-sx-crimson).
+ * The layout stays the same, but the palette is intentionally aligned to the
+ * dashboard's paper / ink / rule tokens so the marketing page feels like part of
+ * the same product rather than a separate brand treatment.
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 .sx-landing {
   --sx-radius: 0.25rem;
 
-  --sx-font-display: "Instrument Serif", "Times New Roman", serif;
-  --sx-font-sans: "Work Sans", system-ui, sans-serif;
-  --sx-font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --sx-font-display: "Inter", system-ui, sans-serif;
+  --sx-font-sans: "Inter", system-ui, sans-serif;
+  --sx-font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --sx-background: oklch(0.972 0.011 85);
-  --sx-foreground: oklch(0.245 0.012 60);
-  --sx-paper: oklch(0.988 0.007 92);
-  --sx-paper-edge: oklch(0.935 0.014 85);
+  --sx-background: #f8fafc;
+  --sx-foreground: #111827;
+  --sx-paper: #ffffff;
+  --sx-paper-edge: #e2e8f0;
 
-  --sx-card: oklch(0.988 0.007 92);
-  --sx-card-foreground: oklch(0.245 0.012 60);
-  --sx-popover: oklch(0.994 0.004 92);
-  --sx-popover-foreground: oklch(0.245 0.012 60);
+  --sx-card: #ffffff;
+  --sx-card-foreground: #111827;
+  --sx-popover: #ffffff;
+  --sx-popover-foreground: #111827;
 
-  --sx-primary: oklch(0.245 0.012 60);
-  --sx-primary-foreground: oklch(0.982 0.008 92);
-  --sx-secondary: oklch(0.945 0.012 85);
-  --sx-secondary-foreground: oklch(0.3 0.012 60);
-  --sx-muted: oklch(0.948 0.01 85);
-  --sx-muted-foreground: oklch(0.545 0.014 70);
-  --sx-accent: oklch(0.93 0.017 80);
-  --sx-accent-foreground: oklch(0.28 0.012 60);
+  --sx-primary: #111827;
+  --sx-primary-foreground: #f8fafc;
+  --sx-secondary: #f8fafc;
+  --sx-secondary-foreground: #475569;
+  --sx-muted: #f8fafc;
+  --sx-muted-foreground: #475569;
+  --sx-accent: #eef2f7;
+  --sx-accent-foreground: #1f2937;
 
-  --sx-crimson: oklch(0.44 0.155 22);
-  --sx-crimson-soft: oklch(0.62 0.115 25);
-  --sx-amber: oklch(0.65 0.105 72);
-  --sx-olive: oklch(0.52 0.075 145);
-  --sx-slateblue: oklch(0.5 0.06 255);
+  --sx-crimson: #b4382f;
+  --sx-crimson-soft: #d46a5d;
+  --sx-amber: #bd8f2b;
+  --sx-olive: #4e8a5f;
+  --sx-slateblue: #3b82f6;
 
-  --sx-destructive: oklch(0.44 0.155 22);
-  --sx-destructive-foreground: oklch(0.982 0.008 92);
+  --sx-destructive: #b4382f;
+  --sx-destructive-foreground: #f8fafc;
 
-  --sx-border: oklch(0.9 0.014 84);
-  --sx-rule: oklch(0.845 0.016 82);
-  --sx-input: oklch(0.9 0.014 84);
-  --sx-ring: oklch(0.44 0.155 22);
+  --sx-border: #d6d9e1;
+  --sx-rule: #d6d9e1;
+  --sx-input: #e2e8f0;
+  --sx-ring: #111827;
 
-  --sx-shadow-paper: 0 1px 1px oklch(0.245 0.012 60 / 0.05), 0 8px 24px -12px oklch(0.245 0.012 60 / 0.22);
-  --sx-shadow-lift: 0 2px 3px oklch(0.245 0.012 60 / 0.06), 0 26px 55px -28px oklch(0.245 0.012 60 / 0.35);
+  --sx-shadow-paper: 0 1px 1px rgba(15, 23, 42, 0.05), 0 8px 24px -12px rgba(15, 23, 42, 0.18);
+  --sx-shadow-lift: 0 2px 3px rgba(15, 23, 42, 0.06), 0 24px 48px -28px rgba(15, 23, 42, 0.28);
 
   background-color: var(--sx-background);
   color: var(--sx-foreground);
@@ -88,13 +88,13 @@
 .sx-landing .sx-sheet {
   background: var(--sx-paper);
   border: 1px solid var(--sx-paper-edge);
-  box-shadow: var(--sx-shadow-paper);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.02), var(--sx-shadow-paper);
 }
 
 .sx-landing .sx-sheet-lift {
   background: var(--sx-paper);
   border: 1px solid var(--sx-paper-edge);
-  box-shadow: var(--sx-shadow-lift);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.02), var(--sx-shadow-lift);
 }
 
 .sx-landing .sx-rule-line {
@@ -111,9 +111,9 @@
 
 .sx-landing .sx-display-xl {
   font-family: var(--sx-font-display);
-  font-weight: 400;
-  line-height: 0.92;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  line-height: 0.94;
+  letter-spacing: -0.04em;
 }
 
 .sx-landing .sx-stamp {
