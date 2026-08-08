@@ -19,11 +19,12 @@ class NegotiationStrategyAgent(BaseAgent):
             payload.contractCaseSnapshot,
             ["risk", "compliance", "comparison", "legalEvidence", "reviewScope"],
         )
+        # Runs on the 8b (no long_context): points output is bounded, so a trimmed
+        # input fits the ~6K request cap and draws from the 8b's separate daily bucket.
         result = await call_structured(
             self.load_prompt(),
-            json.dumps(context)[:60000],
+            json.dumps(context)[:11000],
             NegotiationOutput,
-            long_context=True,
         )
         return AgentOutput(
             namespace="negotiationStrategy", data=result.model_dump(), confidence=0.85

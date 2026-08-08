@@ -17,9 +17,11 @@ class ClauseClassificationAgent(BaseAgent):
 
     async def run(self, payload: AgentInput) -> AgentOutput:
         structured = payload.contractCaseSnapshot.get("document", {}).get("structuredContract", {})
+        # Stays on the 70b: the output echoes full clause text, so even trimmed input
+        # can produce a response too large for the 8b's ~6K request cap.
         result = await call_structured(
             self.load_prompt(),
-            json.dumps(structured)[:120000],
+            json.dumps(structured)[:28000],
             ClassificationOutput,
             long_context=True,
         )

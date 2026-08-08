@@ -18,18 +18,21 @@ from app.llm.groq_client import get_llm
 log = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
-# Groq's 429 body names the wait: "Please try again in 20.84s."
-_RETRY_AFTER_RE = re.compile(r"try again in ([\d.]+)s", re.IGNORECASE)
+# Groq's 429 body names the wait in different units: TPM = "try again in 20.84s",
+# TPD = "try again in 2h13m34.464s". Parse all of them so daily-limit waits are
+# honoured instead of re-firing every few seconds into an exhausted window.
+_RETRY_AFTER_RE = re.compile(
+    r"try again in (?:(\d+)h)?(?:(\d+)m)?([\d.]+)s", re.IGNORECASE)
 
 
 def _retry_after_hint(exc: Exception) -> float | None:
     m = _RETRY_AFTER_RE.search(str(exc))
     if not m:
         return None
-    try:
-        return float(m.group(1))
-    except ValueError:
-        return None
+    hours = int(m.group(1) or 0)
+    minutes = int(m.group(2) or 0)
+    seconds = float(m.group(3) or 0)
+    return hours * 3600 + minutes * 60 + seconds
 
 REPAIR_INSTRUCTION = (
     "Your previous response did not match the required schema. If you echoed the "
@@ -87,8 +90,12 @@ async def call_structured(
             if hint is not None:
                 # The exponential backoff (1s, 2s, 4s) is far shorter than a TPM
                 # rate window; honour the server's wait or every retry re-fires into
-                # the same exhausted minute and burns the remaining quota for nothing.
+                # the same exhausted minute for nothing.
                 delay = max(delay, hint + 1.0)
+                # TPD waits run to hours. A rejected request consumes no quota, so
+                # sleeping the full daily window inside one run just hangs the stage;
+                # cap the wait and let the retry budget fail the stage fast instead.
+                delay = min(delay, 120.0)
             log.warning("LLM transient failure (attempt %s, retry in %.1fs): %s",
                         transient_attempt + 1, delay, exc)
             await asyncio.sleep(delay)

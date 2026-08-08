@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -23,6 +24,24 @@ from app.storage.base import get_storage
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contracts", tags=["contracts"])
+
+
+async def _run_pipeline_local(case_id: str) -> None:
+    """In-process fallback for the Redis/arq pipeline (local venv, no worker).
+
+    Invokes the exact graph the arq worker calls. No durability: if the server
+    restarts mid-run the case stays in_progress and can be resumed with
+    scripts/run_pipeline_local.py. Imports are deferred so uploads never pay for
+    orchestrator import time when Redis is available.
+    """
+    from app.orchestrator.graph import get_graph
+    from app.orchestrator.runner import finalise_pipeline
+    try:
+        await get_graph().ainvoke({"case_id": case_id, "stage": 0, "failed_stages": []})
+        await finalise_pipeline(case_id)
+        log.info("pipeline completed in-process for case %s", case_id)
+    except Exception as exc:
+        log.exception("in-process pipeline failed for case %s: %s", case_id, exc)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -93,18 +112,21 @@ async def upload_contract(
 
     # Enqueue the pipeline onto Redis. The case and its v1 snapshot are already
     # committed above, so a down Redis must not turn a successful upload into a
-    # 500. Log and continue: the case sits in the DB and the pipeline can be run
-    # once Redis is up (or the whole stack runs in Docker, where Redis is a service).
+    # 500. If Redis is unreachable (local venv without a worker), fall back to
+    # running the same graph in-process as a background task so uploads still
+    # produce a report.
     try:
         pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
         await pool.enqueue_job("run_scope", case_id, user.roles, comparison_ref is not None)
+        await pool.aclose()
         log.info(
             "workflow trace case=%s event=scope_enqueued roles=%s has_comparison=%s",
             case_id, user.roles, comparison_ref is not None,
         )
     except Exception as exc:
-        log.warning("pipeline enqueue skipped for case %s (Redis unreachable?): %s",
-                    case_id, exc)
+        log.warning("Redis enqueue failed for case %s (Redis unreachable?); running "
+                    "pipeline in-process: %s", case_id, exc)
+        asyncio.create_task(_run_pipeline_local(case_id))
 
     return {"caseId": case_id, "status": "in_progress"}
 

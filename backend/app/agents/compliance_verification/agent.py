@@ -29,13 +29,14 @@ class ComplianceVerificationAgent(BaseAgent):
                 )
             )
 
+        # Runs on the 8b (no long_context): findings output is bounded, so a trimmed
+        # input fits the ~6K request cap and draws from the 8b's separate daily bucket.
         result = await call_structured(
             self.load_prompt(),
             f"Frameworks in scope: {frameworks}\n\n"
-            f"Clauses:\n{json.dumps(context)[:50000]}\n\n"
-            f"Retrieved evidence:\n{json.dumps(evidence)[:20000]}",
+            f"Clauses:\n{json.dumps(context)[:10000]}\n\n"
+            f"Retrieved evidence:\n{json.dumps(evidence)[:4000]}",
             ComplianceOutput,
-            long_context=True,
         )
         return AgentOutput(
             namespace="compliance",
