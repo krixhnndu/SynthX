@@ -1,10 +1,10 @@
 const cx = (...parts) => parts.filter(Boolean).join(" ");
 
 const VARIANTS = {
-  primary: "bg-ink text-paper hover:bg-white border border-ink",
-  secondary: "border border-ruleHi text-ink hover:border-ink hover:bg-raised",
-  ghost: "border border-transparent text-muted hover:text-ink hover:bg-raised",
-  danger: "border border-severity-critical/70 text-severity-critical hover:bg-severity-critical/10",
+  primary: "bg-ink text-paper border border-ink disabled:bg-ink disabled:text-paper disabled:border-ink",
+  secondary: "border border-ruleHi text-ink disabled:border-ruleHi disabled:text-ink",
+  ghost: "border border-transparent text-muted disabled:border-transparent disabled:text-muted",
+  danger: "border border-severity-critical/70 text-severity-critical disabled:border-severity-critical/70 disabled:text-severity-critical",
 };
 
 const SIZES = {
@@ -23,8 +23,8 @@ export default function Button({
     <button
       {...props}
       className={cx(
-        "inline-flex items-center justify-center gap-2 font-medium transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
+        "inline-flex items-center justify-center gap-2 font-medium transition-transform duration-150 ease-out transform hover:-translate-y-0.5 active:translate-y-0.5 cursor-pointer",
+        "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:opacity-40",
         VARIANTS[variant],
         SIZES[size],
         className
