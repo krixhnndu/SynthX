@@ -58,7 +58,7 @@ export function SceneContract() {
         <SectionMark index="01" label="The Contract" />
         <h2 className="sx-display-xl mt-7 text-5xl sm:text-7xl">First, we read.</h2>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-sx-muted-foreground">
-          Every clause contains a decision, a risk, or an opportunity. SynthX reads the entire
+        Every clause contains a decision, a risk, or an opportunity. Clausepilot reads the entire
           document — not only the parts that go wrong.
         </p>
       </Reveal>

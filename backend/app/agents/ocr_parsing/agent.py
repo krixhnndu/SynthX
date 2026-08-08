@@ -19,9 +19,13 @@ class OcrParsingAgent(BaseAgent):
         raw_bytes = get_storage().get(file_ref)
         source_format, raw_text, confidence = detect_and_extract(raw_bytes, filename)
 
+        # The full text can reach 100K+ chars for long contracts, which exceeds the
+        # free-tier per-request token cap before the prompt/schema/output are counted.
+        # 25K chars (~6K tokens) leaves room for the structure output to fit.
+        raw_text = raw_text[:25000]
         structured = await call_structured(
             self.load_prompt(),
-            raw_text[:120000],
+            raw_text,
             StructureOutput,
             long_context=True,
         )

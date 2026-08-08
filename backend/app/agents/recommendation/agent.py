@@ -25,10 +25,12 @@ class RecommendationAgent(BaseAgent):
             source_types=["template", "policy"],
         )
 
+        # Stays on the 70b: clauseRewrites echo proposed replacement text, so the
+        # output is too large for the 8b's ~6K request cap even with trimmed input.
         result = await call_structured(
             self.load_prompt(),
-            f"Findings:\n{json.dumps(context)[:55000]}\n\n"
-            f"Approved templates:\n{json.dumps(evidence)[:15000]}",
+            f"Findings:\n{json.dumps(context)[:20000]}\n\n"
+            f"Approved templates:\n{json.dumps(evidence)[:6000]}",
             RecommendationOutput,
             long_context=True,
         )

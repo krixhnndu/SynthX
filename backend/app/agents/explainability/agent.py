@@ -28,7 +28,7 @@ class ExplainabilityAgent(BaseAgent):
         )
         result = await call_structured(
             self.load_prompt(),
-            json.dumps(context)[:70000],
+            json.dumps(context)[:25000],
             ExplainabilityOutput,
             long_context=True,
         )

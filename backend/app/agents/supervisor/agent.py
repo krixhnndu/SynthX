@@ -40,11 +40,12 @@ class SupervisorAgent(BaseAgent):
             ["risk", "compliance", "comparison", "legalEvidence",
              "recommendations", "negotiationStrategy", "reviewScope"],
         )
+        # Runs on the 8b (no long_context): consensus output is bounded, so a trimmed
+        # input fits the ~6K request cap and draws from the 8b's separate daily bucket.
         result = await call_structured(
             self.load_prompt() + "\n\nOperate in Consensus mode.",
-            json.dumps(context)[:60000],
+            json.dumps(context)[:11000],
             ConsensusOutput,
-            long_context=True,
         )
         return AgentOutput(
             namespace="consensus", data=result.model_dump(), confidence=result.confidence

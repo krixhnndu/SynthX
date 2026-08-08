@@ -67,7 +67,7 @@ export function HeroCaseFile() {
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="sx-label-mono">Synthx · Legal Intelligence</div>
+              <div className="sx-label-mono">ClausePilot · Legal Intelligence</div>
               <div className="mt-2 font-mono text-sm tracking-[0.18em] text-sx-foreground">
                 CASE FILE {typed}
                 {step >= 1 && typed.length < CASE_ID.length && <span className="sx-caret">▌</span>}

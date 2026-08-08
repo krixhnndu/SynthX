@@ -51,8 +51,8 @@ class CrossDocumentComparisonAgent(BaseAgent):
 
         result = await call_structured(
             self.load_prompt(),
-            f"CURRENT CONTRACT (classified):\n{json.dumps(current)[:50000]}\n\n"
-            f"PRIOR VERSION / TEMPLATE:\n{prior_text[:50000]}",
+            f"CURRENT CONTRACT (classified):\n{json.dumps(current)[:20000]}\n\n"
+            f"PRIOR VERSION / TEMPLATE:\n{prior_text[:15000]}",
             ComparisonOutput,
             long_context=True,
         )

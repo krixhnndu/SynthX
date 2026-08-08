@@ -25,9 +25,18 @@ class ReportGenerationAgent(BaseAgent):
         if not snapshot.get("explainability", {}).get("justifications"):
             raise RuntimeError("report generation blocked: explainability section is missing")
 
+        # The report synthesises analyses already recorded in the case; it never
+        # re-reads the raw contract or produces new findings (prompt.md). Sending the
+        # whole snapshot makes the request exceed the free-tier per-request token cap
+        # by Stage 7, so pass only the sections the 14 report sections are built from.
+        report_input = {k: snapshot[k] for k in (
+            "reviewScope", "clauseClassification", "risk", "compliance", "comparison",
+            "legalEvidence", "recommendations", "negotiationStrategy",
+            "consensus", "explainability",
+        ) if k in snapshot}
         result = await call_structured(
             self.load_prompt() + f"\n\nRequired sections:\n" + "\n".join(REPORT_SECTIONS),
-            json.dumps(snapshot)[:90000],
+            json.dumps(report_input)[:30000],
             ReportOutput,
             long_context=True,
         )

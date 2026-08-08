@@ -32,7 +32,7 @@ class Obligation(BaseModel):
 class TimelineItem(BaseModel):
     event: str
     date: str
-    clause_ref: str
+    clause_ref: str | None = None  # nullable: a date/event may not map to a specific clause
 
 
 class ClassificationOutput(BaseModel):
