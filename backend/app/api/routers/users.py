@@ -52,7 +52,7 @@ def list_users(
     user: CurrentUser = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    users = db.execute(select(User).order_by(User.created_at.desc())).scalars().all()
+    users = db.execute(select(User).order_by(User.created_at.desc())).unique().scalars().all()
     return [
         {"id": u.id, "name": u.name, "email": u.email,
          "roles": [r.name for r in u.roles], "isActive": u.is_active,
