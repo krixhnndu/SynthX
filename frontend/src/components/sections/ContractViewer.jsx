@@ -158,7 +158,7 @@ export default function ContractViewer({ contractCase, status, caseId }) {
                       {linked ? (
                         <button
                           onClick={() => scrollToClause(f.ref)}
-                          className="shrink-0 font-mono text-2xs text-severity-info underline decoration-severity-info/40 underline-offset-2 hover:decoration-severity-info"
+                          className="shrink-0 font-mono text-2xs text-severity-info underline decoration-severity-info/40 underline-offset-2 cursor-pointer"
                         >
                           {f.ref}
                         </button>
