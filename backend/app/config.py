@@ -35,6 +35,9 @@ class Settings(BaseSettings):
 
     # --- LLM (Groq) ---
     groq_api_key: str = ""
+    # Optional comma-separated pool. If unset, GROQ_API_KEY is used. If GROQ_API_KEY
+    # itself is comma-separated, it is also treated as a pool for local convenience.
+    groq_api_keys: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
     groq_model_long_context: str = "llama-3.3-70b-versatile"
     llm_timeout_seconds: int = 120
