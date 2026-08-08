@@ -30,8 +30,8 @@ export default function Sidebar({ onNavigate }) {
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className="border-b border-rule px-5 py-5">
-        <div className="font-display text-xl leading-none tracking-tight text-ink">SynthX</div>
-        <Eyebrow className="mt-1.5">Contract Intelligence</Eyebrow>
+        <div className="font-display text-xl leading-none tracking-tight text-ink">ClausePilot</div>
+        <Eyebrow className="mt-1.5">Navigate Every Clause with Confidence</Eyebrow>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-5">
