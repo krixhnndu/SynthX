@@ -20,7 +20,7 @@ export default function TopBar({ onOpenNav }) {
   const nested = useMatch("/contracts/:caseId/*");
   const exact = useMatch("/contracts/:caseId");
   const caseMatch = nested ?? exact;
-  const section = SECTION.find(([re]) => re.test(pathname))?.[1] ?? "SynthX";
+  const section = SECTION.find(([re]) => re.test(pathname))?.[1] ?? "ClausePilot";
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-rule bg-paper/95 px-4 backdrop-blur lg:px-8">
