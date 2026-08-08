@@ -187,7 +187,6 @@ export default function CaseWorkspace() {
           >
             Audit trail
           </Link>
-          </Link>
         </nav>
 
         <main className="min-w-0">
